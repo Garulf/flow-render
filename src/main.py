@@ -1,6 +1,7 @@
 from pathlib import Path
-import sys
-from typing import Dict, List, Optional
+import shutil
+from datetime import datetime
+from uuid import uuid4
 
 from config import Config
 from renderer import render_from_config
@@ -9,8 +10,13 @@ from image import crop_image
 
 
 def main(config: Config):
-    build_dir = Path('.build')
+    build_dir = Path('build')
+    output_dir = Path('output')
+
+    if build_dir.exists():
+        shutil.rmtree(build_dir)
     build_dir.mkdir(parents=True, exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     config_path = build_dir / 'config.json'
     config.save_to_file(str(config_path))
@@ -19,5 +25,6 @@ def main(config: Config):
     render_from_config(config, str(html_path))
 
     raw_image = grab_image(str(html_path))
-    final_image = build_dir / Path(raw_image).name
+    unique_suffix = f"{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}_{uuid4().hex[:8]}"
+    final_image = output_dir / f"output_{unique_suffix}.png"
     crop_image(raw_image, final_image)

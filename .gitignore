@@ -47,8 +47,7 @@ ENV/
 htmlcov/
 
 # Build and packaging artifacts
-.build/
-dist/
+build/
 site/
 *.egg-info/
 .eggs/
