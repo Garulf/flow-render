@@ -1,0 +1,46 @@
+#Preview {
+    perspective: 1400px !important;
+}
+
+#WindowBorder {
+    transform-style: preserve-3d !important;
+    transform: perspective(1400px) rotateY(-12deg) rotateX(6deg) translateY(-4px) !important;
+    transform-origin: center center !important;
+    overflow: visible !important;
+    filter: drop-shadow(0 28px 26px rgba(0, 0, 0, 0.28)) !important;
+}
+
+#WindowBorder::after {
+    content: "";
+    position: absolute;
+    inset: 10px;
+    transform: translateY(75%) rotateX(88deg) scale(1.02);
+    filter: blur(36px);
+    opacity: 0.4;
+    background: radial-gradient(circle at center, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0));
+    pointer-events: none;
+}
+
+.item {
+    transition: transform 180ms ease, box-shadow 180ms ease !important;
+}
+
+.selecteditem {
+    transform: translateX(6px) scale(1.015) !important;
+    box-shadow: inset 3px 0 0 #cbcbcb, 0 8px 16px rgba(0, 0, 0, 0.2) !important;
+}
+
+.icon,
+.Icon {
+    overflow: hidden !important;
+    border-radius: 8px !important;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.22) !important;
+}
+
+.icon img,
+.Icon img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    transform: scale(1.12) !important;
+}

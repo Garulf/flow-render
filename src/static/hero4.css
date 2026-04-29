@@ -1,0 +1,57 @@
+#Preview {
+    perspective: 1100px !important;
+}
+
+#WindowBorder {
+    position: relative;
+    transform-style: preserve-3d !important;
+    transform: perspective(1100px) rotateY(16deg) rotateX(4deg) !important;
+    transform-origin: center center !important;
+    overflow: visible !important;
+    filter: drop-shadow(-18px 20px 22px rgba(0, 0, 0, 0.26)) !important;
+}
+
+#WindowBorder::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: 8px;
+    box-shadow: 0 0 30px rgba(255, 255, 255, 0.35), 0 0 10px rgba(203, 203, 203, 0.9);
+    pointer-events: none;
+}
+
+#WindowBorder::after {
+    content: "";
+    position: absolute;
+    inset: 8px;
+    transform: translateY(68%) rotateX(88deg);
+    filter: blur(44px);
+    opacity: 0.45;
+    background: #ffffff;
+    pointer-events: none;
+}
+
+.selecteditem {
+    box-shadow: 0 0 0 1px #cbcbcb inset, 0 0 18px rgba(255, 255, 255, 0.5) !important;
+    transform: scale(1.01) !important;
+}
+
+#GlassIcon {
+    opacity: 0.8 !important;
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.8));
+}
+
+.icon,
+.Icon {
+    overflow: hidden !important;
+    border-radius: 50% !important;
+    box-shadow: 0 0 0 2px #eae7ee, 0 4px 14px rgba(0, 0, 0, 0.25) !important;
+}
+
+.icon img,
+.Icon img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    clip-path: circle(48% at 50% 50%);
+}
