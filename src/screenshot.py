@@ -4,6 +4,8 @@ from playwright.sync_api import sync_playwright
 
 def grab_image(path: str):
     full_path = Path(path).resolve()
+    image_file = Path(path).with_suffix('.png')
+    image_file.parent.mkdir(parents=True, exist_ok=True)
     with sync_playwright() as p:
         for browser_type in [p.chromium]:
             browser = browser_type.launch()
@@ -13,7 +15,6 @@ def grab_image(path: str):
             # select #WindowBorder id
             # element = page.query_selector('#WindowBorder')
             # take a screenshot of the element
-            image_file = Path(path).with_suffix('.png')
             page.screenshot(
                 path=image_file,
                 omit_background=True,

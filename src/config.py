@@ -3,7 +3,7 @@ from typing import List, Optional
 import json
 from pathlib import Path
 
-from result_config import ResultConfig
+from result_config import resolve_icon
 from plugin import Plugin, PluginResult
 
 
@@ -50,7 +50,10 @@ class Config:
     def from_file(cls, path: str) -> 'Config':
         with open(path, 'r') as f:
             data = json.load(f)
-        # data["path"] = str(Path(path).parent.resolve())
+        base_path = str(Path(path).parent.resolve())
+        data["icon"] = resolve_icon(data.get("icon", ""), base_path=base_path)
+        for result in data.get("results", []):
+            result["icon"] = resolve_icon(result.get("icon", ""), base_path=base_path)
         print(data["query"])
         return cls(
             **data
@@ -63,16 +66,17 @@ class Config:
 
 def plugin_to_config(plugin: Plugin, query: str, max_results: int = 3) -> Config:
     output = plugin.run_plugin(query)
+    plugin_base_path = plugin.path
     return Config(
         keyword=plugin.manifest.ActionKeyword,
         query=query,
-        icon=plugin.icon_path,
+        icon=resolve_icon(plugin.icon_path, base_path=plugin_base_path),
         max_results=max_results,
         results=[
             {
                 "title": item["Title"],
                 "subtitle": item["SubTitle"],
-                "icon": item["IcoPath"]
+                "icon": resolve_icon(item["IcoPath"], base_path=plugin_base_path)
             }
             for item in sort_results(output["result"])[:max_results]
         ]
@@ -84,13 +88,13 @@ def plugin_manager(plugin: Plugin) -> Config:
     return Config(
         query=f"pm install {plugin.manifest.Name}",
         query_suggestion=f"pm install {plugin.manifest.Name}",
-        icon="https://github.com/Flow-Launcher/Flow.Launcher/blob/dev/Plugins/Flow.Launcher.Plugin.PluginsManager/Images/pluginsmanager.png?raw=true",
+        icon=resolve_icon("https://github.com/Flow-Launcher/Flow.Launcher/blob/dev/Plugins/Flow.Launcher.Plugin.PluginsManager/Images/pluginsmanager.png?raw=true"),
         max_results=3,
         results=[
             {
                 "title": f"{plugin.manifest.Name} by {plugin.manifest.Author}",
                 "subtitle": plugin.manifest.Description,
-                "icon": plugin.icon_path
+                "icon": resolve_icon(plugin.icon_path, base_path=plugin.path)
             }
         ]
     )

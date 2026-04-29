@@ -16,17 +16,19 @@ def render(render_data: Config) -> str:
 
     loaded_template = template_env.get_template(BASE_TEMPLATE)
 
-    return loaded_template.render()
+    # Keep legacy templates working by exposing Config fields at top-level.
+    return loaded_template.render(**render_data.as_dict(), render_data=render_data)
 
 
 def save_rendered(rendered_template: str, output_path: str) -> None:
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     print("Saving rendered template to", output_path)
     with open(output_path, 'w') as f:
         f.write(rendered_template)
 
 
-def render_from_config(config: Config):
+def render_from_config(config: Config, output_path: str = 'output.html'):
     rendered = render(
         config
     )
-    save_rendered(rendered, 'output.html')
+    save_rendered(rendered, output_path)

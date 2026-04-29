@@ -1,0 +1,14 @@
+{
+    "keyword": "pm",
+    "query": "install Steam Search",
+    "icon": "https://raw.githubusercontent.com/Flow-Launcher/Flow.Launcher/refs/heads/dev/Plugins/Flow.Launcher.Plugin.PluginsManager/Images/pluginsmanager.png",
+    "selection": 0,
+    "max_results": 1,
+    "results": [
+        {
+            "title": "Steam Search by Garulf",
+            "subtitle": "Search and launch your Steam Game library",
+            "icon": "F:\\StarCitizen\\LIVE\\Bin64\\StarCitizen.exe"
+        }
+    ]
+}

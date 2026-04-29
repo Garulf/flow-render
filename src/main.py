@@ -9,6 +9,14 @@ from image import crop_image
 
 
 def main(config: Config):
-    render_from_config(config)
-    image_file = grab_image('output.html')
-    crop_image(image_file)
+    build_dir = Path('build')
+    output_dir = Path('output')
+    build_dir.mkdir(parents=True, exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    html_path = build_dir / 'output.html'
+    render_from_config(config, str(html_path))
+
+    raw_image = grab_image(str(html_path))
+    final_image = output_dir / Path(raw_image).name
+    crop_image(raw_image, final_image)
