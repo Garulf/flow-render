@@ -1,4 +1,3 @@
-output/
 .history/
 
 # OS / Editor
@@ -48,7 +47,7 @@ ENV/
 htmlcov/
 
 # Build and packaging artifacts
-build/
+.build/
 dist/
 site/
 *.egg-info/
@@ -57,3 +56,5 @@ pip-wheel-metadata/
 
 # Jupyter
 .ipynb_checkpoints/
+
+output/
