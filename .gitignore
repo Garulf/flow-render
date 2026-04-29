@@ -11,6 +11,9 @@ Desktop.ini
 # Logs
 *.log
 
+# Root config files
+/*.json
+
 # Environment / local config
 .env
 .env.*
