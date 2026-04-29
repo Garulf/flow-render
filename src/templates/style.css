@@ -19,9 +19,10 @@ body {
     border-color: #cbcbcb;
     border-width: thin;
     width: 540px;
-    background-color: f4f1f8;
+    background-color: #f4f1f8;
     filter: drop-shadow(0 0 0.4rem rgb(168, 168, 168));
     padding-bottom: 8px;
+}
 
 #QueryBoxArea {
     margin: 4 12 0 18;
@@ -67,7 +68,7 @@ body {
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
-    opacity: 0.5"
+    opacity: 0.5;
 
 }
 
