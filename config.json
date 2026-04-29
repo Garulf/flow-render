@@ -1,0 +1,14 @@
+{
+    "keyword": "gr",
+    "query": "garulf/github-quick-l",
+    "icon": "C:\\Users\\Garulf\\AppData\\Local\\FlowLauncher\\app-1.17.2\\UserData\\Plugins\\Github-Quick-Launcher-3.0.0\\icon.png",
+    "selection": 0,
+    "max_results": 3,
+    "results": [
+        {
+            "title": "Garulf/Github-Quick-Launcher",
+            "subtitle": "Quickly search Github from Flow Launcher",
+            "icon": "https://avatars.githubusercontent.com/u/535299?v=4"
+        }
+    ]
+}

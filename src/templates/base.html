@@ -1,0 +1,42 @@
+<html>
+<head>
+    <!-- load css -->
+    <!-- <link rel="stylesheet" type="text/css" href="{{ css }}">
+    <link rel="stylesheet" href="C:/Users/Garulf/Desktop/web render/src/static/hero.css"> -->
+    <style>
+        {% filter indent(width=8) %}
+        {%- include 'style.css' | indent(8) %}
+        {% endfilter %}
+    </style>
+
+
+
+</head>
+<Body>
+    <div>
+        <div id="Preview">
+            <div id="WindowBorder">
+                <div id="QueryBoxArea">
+                    <div>
+                      <div id="QueryBoxText">{{ render_data.keyword }} {{ query }}</div>
+                        <div id="QueryBoxSuggestion">{{ query_suggestion }}</div>
+                        <div id="GlassIcon"><img src="{{ icon }}" width="32" height="32"></div>
+                    </div>
+                </div>
+                <div id="Separator"></div>
+                {% for result in results %}
+                    <div class="item {{ 'selecteditem' if selection == loop.index0 else '' }}">
+                        <div class="icon">
+                            <img src="{{ result.icon }}" width="38" height="38">
+                        </div>
+                        <div style="position: absolute;top: 50%; left:68px; transform: translateY(-50%);width:350px;border: 0px solid rgb(212, 70, 70);display:block; float:left;">
+                            <div class="Title">{{ result.title }}</div>
+                            <div class="SubTitle">{{ result.subtitle }}</div>
+                        </div>
+                        <div class="Hotkey">{{ 'Alt+' ~ loop.index if loop.index <= 9 else '' }}</div>
+                    </div>
+                {% endfor %}
+        </div>
+    </div>
+</Body>
+</html>

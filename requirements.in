@@ -1,0 +1,6 @@
+flask
+python-datauri
+pillow
+pywin32
+httpx
+playwright
