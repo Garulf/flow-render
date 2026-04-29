@@ -4,8 +4,12 @@
     <!-- <link rel="stylesheet" type="text/css" href="{{ css }}">
     <link rel="stylesheet" href="C:/Users/Garulf/Desktop/web render/src/static/hero.css"> -->
     <style>
+        {% set css_file = css if css else 'style.css' %}
         {% filter indent(width=8) %}
-        {%- include 'style.css' | indent(8) %}
+        {% if css_file != 'style.css' %}
+        {%- include [css_file, 'src/static/' ~ css_file] ignore missing %}
+        {% endif %}
+        {%- include ['style.css', 'src/static/style.css'] ignore missing %}
         {% endfilter %}
     </style>
 
