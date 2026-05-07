@@ -14,7 +14,7 @@ body {
     margin: auto;
     overflow: hidden;
     border-radius:5px;
-    border-collapse: separate;
+    /* border-collapse: separate; This property is for tables, not divs */
     border-style: solid;
     border-color: #cbcbcb;
     border-width: thin;
@@ -26,9 +26,9 @@ body {
 
 #QueryBoxArea {
     margin: 4 12 0 18;
-    border: 0px solid #000;
+    /* border: 0px solid #000; This border is effectively invisible */
     position: relative;
-    height: 52;
+    height: 52px;
 }
 
 #QueryBoxText {
@@ -65,7 +65,7 @@ body {
 
 #GlassIcon {
     right: 4;
-    position: absolute;
+    right: 4px;
     top: 50%;
     transform: translateY(-50%);
     opacity: 0.5;
@@ -82,7 +82,7 @@ body {
 }
 
 .item {
-    border: 0px solid #000;
+    /* border: 0px solid #000; This border is effectively invisible */
     display: block;
     height: 52px;
     position: relative;
@@ -92,14 +92,25 @@ body {
     background-color:#eae7ee;
 }
 
+.item-text-container {
+    position: absolute;
+    top: 50%;
+    left: 68px;
+    transform: translateY(-50%);
+    width: 350px;
+    /* border: 0px solid rgb(212, 70, 70); This border is effectively invisible */
+    display: block;
+    float: left; /* Consider removing float if not strictly needed with absolute positioning */
+}
+
 .Icon {
     position: absolute;
     top: 50%;
     left: 18px;
     transform: translateY(-50%);
-    width: 38;
-    height: 38;
-    border: 0px solid #000;
+    width: 38px;
+    height: 38px;
+    /* border: 0px solid #000; This border is effectively invisible */
     display: table-cell;
     vertical-align: middle;
 }
@@ -107,7 +118,7 @@ body {
 .Title {
     margin: 0 0 0 0;
     display: block;
-    width: 400;
+    width: 400px;
     font-size: 16px;
     overflow: hidden;
     text-wrap: nowrap;
@@ -136,10 +147,11 @@ body {
     position: absolute;
     top: 50%;
     right: 6px;
+    right: 6px;
     transform: translateY(-50%);
     float: right;
     width: 80px;
-    border: 0px solid #000;
+    /* border: 0px solid #000; This border is effectively invisible */
     text-align: center;
     font-size: 13px;
     color: #acacac;
