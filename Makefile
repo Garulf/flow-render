@@ -22,6 +22,9 @@ endif
 ifneq ($(strip $(CSS)),)
 CLI_ARGS += -s "$(CSS)"
 endif
+ifneq ($(strip $(OUTPUT)),)
+CLI_ARGS += -o "$(OUTPUT)"
+endif
 ifneq ($(strip $(EXTRA_ARGS)),)
 CLI_ARGS += $(EXTRA_ARGS)
 endif
@@ -40,7 +43,7 @@ help:
 	@echo
 	@echo "Variables:"
 	@echo "  VENV=.venv"
-	@echo "  CONFIG, PLUGIN, PLUGIN_URL, QUERY, PLUGIN_MANAGER=1, CSS, SKIP_PLAYWRIGHT=1, EXTRA_ARGS"
+	@echo "  CONFIG, PLUGIN, PLUGIN_URL, QUERY, PLUGIN_MANAGER=1, CSS, OUTPUT, SKIP_PLAYWRIGHT=1, EXTRA_ARGS"
 
 setup:
 	@if [ -x "$(VENV_PY)" ]; then \

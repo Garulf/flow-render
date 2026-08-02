@@ -10,13 +10,19 @@ screenshots for READMEs and store listings without staging a real launcher windo
 
 1. A `Config` (from a JSON file, or built by running a real plugin) describes the
    search bar and its results.
-2. `renderer.py` renders `templates/base.html` with Jinja2 into `build/output.html`.
+2. `renderer.py` renders `templates/base.html` with Jinja2 into a temporary
+   `output.html`.
 3. `screenshot.py` loads that file in headless Chromium and screenshots it with a
    transparent background.
 4. `image.py` crops to the smallest bounding box and writes
-   `output/output_<timestamp>_<id>.png`.
+   `output_<timestamp>_<id>.png` to the output directory.
 
-`build/` is wiped on every run; `output/` accumulates.
+Intermediate build files live in a temp directory that's cleaned up automatically
+after each run — nothing is left behind wherever you happen to invoke the CLI from.
+The final PNG defaults to a per-user data directory (`%LOCALAPPDATA%\web-render\output`
+on Windows, `~/Library/Application Support/web-render/output` on macOS,
+`$XDG_DATA_HOME/web-render/output` or `~/.local/share/web-render/output` on Linux) and
+accumulates there across runs; override it per-run with `-o`/`--output`.
 
 ## Requirements
 
@@ -76,6 +82,7 @@ web-render -c ./example/config.json
 | `-q`, `--query` | Query to run against the plugin |
 | `-i` | Render the plugin-manager "pm install" view for the given plugin (works with `-p` or `-u`) instead of running a query |
 | `-s`, `--css` | Stylesheet to render with, e.g. `win11-dark.css` (only applies with `-p`/`-u`; a config file's own `css` field takes precedence with `-c`) |
+| `-o`, `--output` | Directory to save the rendered PNG in (defaults to a per-user data directory, see above) |
 
 With `-p`, the plugin's `ExecuteFileName` is invoked as a subprocess with a
 `{"method": "query", "parameters": [query]}` request and its results become the

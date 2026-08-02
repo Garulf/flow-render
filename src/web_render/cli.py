@@ -19,6 +19,7 @@ def get_args(seq: Sequence[str]) -> Namespace:
     parser.add_argument('-q', '--query', help="Query to run")
     parser.add_argument('-i', action='store_true', help="Use plugin manager")
     parser.add_argument('-s', '--css', help="Stylesheet to render with (e.g. win11-dark.css)")
+    parser.add_argument('-o', '--output', help="Directory to save the rendered PNG in (defaults to a per-user data directory)")
 
     return parser.parse_args(seq)
 
@@ -43,7 +44,7 @@ def build_config(args: Namespace) -> Config:
 def setup(args: Namespace):
     if not args.config and not args.plugin and not args.plugin_url:
         sys.exit("Provide a config file (-c), a plugin path (-p), or a plugin zip (-u). See --help.")
-    main(build_config(args))
+    main(build_config(args), args.output)
 
 
 def run():
