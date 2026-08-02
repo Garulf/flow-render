@@ -21,7 +21,7 @@ MAIN_PY = (
 
 
 def test_setup_without_config_or_plugin_exits_with_usage_error():
-    args = Namespace(config=None, plugin=None, plugin_url=None, query=None, i=False)
+    args = Namespace(config=None, plugin=None, plugin_url=None, query=None, i=False, css=None)
 
     with pytest.raises(SystemExit):
         cli.setup(args)
@@ -33,7 +33,7 @@ def test_setup_with_plugin_builds_config_and_renders(tmp_path, monkeypatch):
     rendered = {}
     monkeypatch.setattr(cli, "main", lambda config: rendered.update(config=config))
 
-    cli.setup(Namespace(config=None, plugin=str(tmp_path), plugin_url=None, query="q", i=False))
+    cli.setup(Namespace(config=None, plugin=str(tmp_path), plugin_url=None, query="q", i=False, css=None))
 
     assert isinstance(rendered["config"], Config)
     assert rendered["config"].results[0]["title"] == "a"
@@ -53,12 +53,29 @@ def test_setup_with_plugin_url_builds_config_and_renders(tmp_path, monkeypatch):
     rendered = {}
     monkeypatch.setattr(cli, "main", lambda config: rendered.update(config=config))
 
-    cli.setup(Namespace(config=None, plugin=None, plugin_url=str(zip_path), query="q", i=False))
+    cli.setup(Namespace(config=None, plugin=None, plugin_url=str(zip_path), query="q", i=False, css=None))
 
     assert isinstance(rendered["config"], Config)
     assert rendered["config"].results[0]["title"] == "a"
 
 
+def test_setup_with_css_sets_config_css(tmp_path, monkeypatch):
+    (tmp_path / "plugin.json").write_text(json.dumps(MANIFEST))
+    (tmp_path / "main.py").write_text(MAIN_PY)
+    rendered = {}
+    monkeypatch.setattr(cli, "main", lambda config: rendered.update(config=config))
+
+    cli.setup(Namespace(config=None, plugin=str(tmp_path), plugin_url=None, query="q", i=False, css="win11-dark.css"))
+
+    assert rendered["config"].css == "win11-dark.css"
+
+
 def test_get_args_rejects_plugin_and_plugin_url_together():
     with pytest.raises(SystemExit):
         cli.get_args(["-p", "./plugin", "-u", "./plugin.zip"])
+
+
+def test_get_args_parses_css_flag():
+    args = cli.get_args(["-p", "./plugin", "-s", "win11-dark.css"])
+
+    assert args.css == "win11-dark.css"

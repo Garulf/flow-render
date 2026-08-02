@@ -75,6 +75,7 @@ web-render -c ./example/config.json
 | `-u`, `--plugin-url` | URL or local path to a plugin `.zip`; extracted to a temp dir and used like `-p` |
 | `-q`, `--query` | Query to run against the plugin |
 | `-i` | Render the plugin-manager view for the given plugin |
+| `-s`, `--css` | Stylesheet to render with, e.g. `win11-dark.css` (only applies with `-p`/`-u`; a config file's own `css` field takes precedence with `-c`) |
 
 With `-p`, the plugin's `ExecuteFileName` is invoked as a subprocess with a
 `{"method": "query", "parameters": [query]}` request and its results become the

@@ -19,6 +19,9 @@ endif
 ifeq ($(strip $(PLUGIN_MANAGER)),1)
 CLI_ARGS += -i
 endif
+ifneq ($(strip $(CSS)),)
+CLI_ARGS += -s "$(CSS)"
+endif
 ifneq ($(strip $(EXTRA_ARGS)),)
 CLI_ARGS += $(EXTRA_ARGS)
 endif
@@ -31,12 +34,13 @@ help:
 	@echo "  make run PLUGIN=./path/to/plugin QUERY=test"
 	@echo "  make run PLUGIN_URL=https://example.com/plugin.zip QUERY=test"
 	@echo "  make run PLUGIN_MANAGER=1 PLUGIN=./path/to/plugin"
+	@echo "  make run PLUGIN=./path/to/plugin QUERY=test CSS=win11-dark.css"
 	@echo "  make run CONFIG=./config2.json SKIP_PLAYWRIGHT=1"
 	@echo "  make run EXTRA_ARGS='-c ./config2.json'"
 	@echo
 	@echo "Variables:"
 	@echo "  VENV=.venv"
-	@echo "  CONFIG, PLUGIN, PLUGIN_URL, QUERY, PLUGIN_MANAGER=1, SKIP_PLAYWRIGHT=1, EXTRA_ARGS"
+	@echo "  CONFIG, PLUGIN, PLUGIN_URL, QUERY, PLUGIN_MANAGER=1, CSS, SKIP_PLAYWRIGHT=1, EXTRA_ARGS"
 
 setup:
 	@if [ -x "$(VENV_PY)" ]; then \
