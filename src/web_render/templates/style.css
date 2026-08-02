@@ -79,6 +79,28 @@ body {
     height: 1px;
 }
 
+#ResultsList {
+    position: relative;
+}
+
+#ResultsScrollbar {
+    position: absolute;
+    top: 2px;
+    bottom: 2px;
+    right: 6px;
+    width: 4px;
+}
+
+#ResultsScrollbar .thumb {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 4px;
+    height: 40%;
+    border-radius: 2px;
+    background-color: rgba(128, 128, 128, 0.45);
+}
+
 .item {
     /* border: 0px solid #000; This border is effectively invisible */
     display: block;

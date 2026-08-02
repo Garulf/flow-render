@@ -59,7 +59,7 @@ def test_render_shows_scrollbar_when_results_are_at_capacity(tmp_path, monkeypat
 
     render_from_config(make_config(3, max_results=3), str(output))
 
-    assert "ResultsScrollbar" in output.read_text()
+    assert '<div id="ResultsScrollbar">' in output.read_text()
 
 
 def test_render_hides_scrollbar_when_results_are_under_capacity(tmp_path, monkeypatch):
@@ -68,4 +68,4 @@ def test_render_hides_scrollbar_when_results_are_under_capacity(tmp_path, monkey
 
     render_from_config(make_config(2, max_results=3), str(output))
 
-    assert "ResultsScrollbar" not in output.read_text()
+    assert '<div id="ResultsScrollbar">' not in output.read_text()
