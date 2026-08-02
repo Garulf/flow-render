@@ -29,3 +29,7 @@ class PluginManifest:
     @classmethod
     def from_path(cls, path: Union[str, Path]):
         return cls.from_file(Path(path) / FILENAME)
+
+    @property
+    def is_v2(self) -> bool:
+        return self.Language.lower().endswith("_v2")

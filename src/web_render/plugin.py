@@ -3,6 +3,7 @@ import sys
 from pathlib import Path
 import subprocess
 from typing import List, Optional, TypedDict
+from . import plugin_v2
 from .plugin_manifest import PluginManifest
 
 
@@ -38,6 +39,13 @@ class Plugin:
         return str(Path(self.path) / self.manifest.IcoPath)
 
     def run_plugin(self, query: str) -> List[PluginResult]:
+        if self.manifest.is_v2:
+            language = self.manifest.Language.lower()
+            if language != "python_v2":
+                raise NotImplementedError(f"Plugin language '{self.manifest.Language}' is not supported")
+            results = plugin_v2.run_plugin(self.path, self.execute_path, self.manifest, query)
+            return sort_results(results)
+
         request = {"method": "query", "parameters": [query]}
         process = subprocess.run(
             [sys.executable, self.execute_path, json.dumps(request)],
