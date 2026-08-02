@@ -1,4 +1,5 @@
 import json
+import zipfile
 from argparse import Namespace
 
 import pytest
@@ -6,31 +7,58 @@ import pytest
 from web_render import cli
 from web_render.config import Config
 
+MANIFEST = {
+    "ID": "1", "ActionKeyword": "t", "Name": "Test", "Description": "",
+    "Author": "", "Version": "1.0", "Language": "python", "Website": "",
+    "IcoPath": "icon.png", "ExecuteFileName": "main.py",
+}
+MAIN_PY = (
+    'import json\n'
+    'print(json.dumps({"result": ['
+    '{"Title": "a", "SubTitle": "", "IcoPath": "data:image/png;base64,x", "Score": 1}'
+    ']}))\n'
+)
+
 
 def test_setup_without_config_or_plugin_exits_with_usage_error():
-    args = Namespace(config=None, plugin=None, query=None, i=False)
+    args = Namespace(config=None, plugin=None, plugin_url=None, query=None, i=False)
 
     with pytest.raises(SystemExit):
         cli.setup(args)
 
 
 def test_setup_with_plugin_builds_config_and_renders(tmp_path, monkeypatch):
-    manifest = {
-        "ID": "1", "ActionKeyword": "t", "Name": "Test", "Description": "",
-        "Author": "", "Version": "1.0", "Language": "python", "Website": "",
-        "IcoPath": "icon.png", "ExecuteFileName": "main.py",
-    }
-    (tmp_path / "plugin.json").write_text(json.dumps(manifest))
-    (tmp_path / "main.py").write_text(
-        'import json\n'
-        'print(json.dumps({"result": ['
-        '{"Title": "a", "SubTitle": "", "IcoPath": "data:image/png;base64,x", "Score": 1}'
-        ']}))\n'
-    )
+    (tmp_path / "plugin.json").write_text(json.dumps(MANIFEST))
+    (tmp_path / "main.py").write_text(MAIN_PY)
     rendered = {}
     monkeypatch.setattr(cli, "main", lambda config: rendered.update(config=config))
 
-    cli.setup(Namespace(config=None, plugin=str(tmp_path), query="q", i=False))
+    cli.setup(Namespace(config=None, plugin=str(tmp_path), plugin_url=None, query="q", i=False))
 
     assert isinstance(rendered["config"], Config)
     assert rendered["config"].results[0]["title"] == "a"
+
+
+def test_setup_with_plugin_url_builds_config_and_renders(tmp_path, monkeypatch):
+    plugin_dir = tmp_path / "plugin"
+    plugin_dir.mkdir()
+    (plugin_dir / "plugin.json").write_text(json.dumps(MANIFEST))
+    (plugin_dir / "main.py").write_text(MAIN_PY)
+
+    zip_path = tmp_path / "plugin.zip"
+    with zipfile.ZipFile(zip_path, "w") as archive:
+        for file in plugin_dir.iterdir():
+            archive.write(file, file.name)
+
+    rendered = {}
+    monkeypatch.setattr(cli, "main", lambda config: rendered.update(config=config))
+
+    cli.setup(Namespace(config=None, plugin=None, plugin_url=str(zip_path), query="q", i=False))
+
+    assert isinstance(rendered["config"], Config)
+    assert rendered["config"].results[0]["title"] == "a"
+
+
+def test_get_args_rejects_plugin_and_plugin_url_together():
+    with pytest.raises(SystemExit):
+        cli.get_args(["-p", "./plugin", "-u", "./plugin.zip"])

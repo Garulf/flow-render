@@ -10,6 +10,9 @@ endif
 ifneq ($(strip $(PLUGIN)),)
 CLI_ARGS += -p "$(PLUGIN)"
 endif
+ifneq ($(strip $(PLUGIN_URL)),)
+CLI_ARGS += -u "$(PLUGIN_URL)"
+endif
 ifneq ($(strip $(QUERY)),)
 CLI_ARGS += -q "$(QUERY)"
 endif
@@ -26,13 +29,14 @@ help:
 	@echo "Targets:"
 	@echo "  make run CONFIG=./config2.json"
 	@echo "  make run PLUGIN=./path/to/plugin QUERY=test"
+	@echo "  make run PLUGIN_URL=https://example.com/plugin.zip QUERY=test"
 	@echo "  make run PLUGIN_MANAGER=1 PLUGIN=./path/to/plugin"
 	@echo "  make run CONFIG=./config2.json SKIP_PLAYWRIGHT=1"
 	@echo "  make run EXTRA_ARGS='-c ./config2.json'"
 	@echo
 	@echo "Variables:"
 	@echo "  VENV=.venv"
-	@echo "  CONFIG, PLUGIN, QUERY, PLUGIN_MANAGER=1, SKIP_PLAYWRIGHT=1, EXTRA_ARGS"
+	@echo "  CONFIG, PLUGIN, PLUGIN_URL, QUERY, PLUGIN_MANAGER=1, SKIP_PLAYWRIGHT=1, EXTRA_ARGS"
 
 setup:
 	@if [ -x "$(VENV_PY)" ]; then \

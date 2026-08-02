@@ -72,12 +72,15 @@ web-render -c ./example/config.json
 | --- | --- |
 | `-c`, `--config` | Path to a config JSON file |
 | `-p`, `--plugin` | Path to a Flow Launcher plugin directory (read via its `plugin.json`) |
+| `-u`, `--plugin-url` | URL or local path to a plugin `.zip`; extracted to a temp dir and used like `-p` |
 | `-q`, `--query` | Query to run against the plugin |
 | `-i` | Render the plugin-manager view for the given plugin |
 
 With `-p`, the plugin's `ExecuteFileName` is invoked as a subprocess with a
 `{"method": "query", "parameters": [query]}` request and its results become the
-rendered rows.
+rendered rows. `-u` is mutually exclusive with `-p` — the zip is extracted to a
+temporary directory (its `plugin.json` is located automatically, even if the zip
+wraps everything in a subfolder), then handled exactly like `-p`.
 
 ## Config format
 
