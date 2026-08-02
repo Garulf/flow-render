@@ -224,3 +224,49 @@ def test_run_plugin_v2_answers_inbound_fuzzy_search_callbacks(tmp_path):
     results = Plugin(str(tmp_path)).run_plugin("doom")
 
     assert [r["Title"] for r in results] == ["doom eternal"]
+
+
+# pyflowlauncher's Result.to_json() uses PascalCase keys (matching the
+# original V1 protocol), unlike flogin's camelCase — both are real SDKs.
+PASCAL_CASE_V2_PLUGIN = '''
+import json
+import sys
+
+
+def send(message_id, result):
+    sys.stdout.write(json.dumps({"jsonrpc": "2.0", "id": message_id, "result": result, "error": None}) + "\\n")
+    sys.stdout.flush()
+
+
+for line in sys.stdin:
+    line = line.strip()
+    if not line:
+        continue
+    message = json.loads(line)
+    if message.get("method") == "initialize":
+        send(message["id"], {"hide": False})
+    elif message.get("method") == "query":
+        send(message["id"], {
+            "debugMessage": "",
+            "settingsChange": None,
+            "result": [
+                {"Title": "Doom Eternal", "SubTitle": "Launch Doom Eternal", "IcoPath": "icon.png", "Score": 100},
+            ],
+        })
+'''
+
+
+def test_run_plugin_v2_handles_pascal_case_results(tmp_path):
+    manifest = {
+        "ID": "1", "ActionKeyword": "t", "Name": "Test", "Description": "",
+        "Author": "", "Version": "1.0", "Language": "python_v2", "Website": "",
+        "IcoPath": "icon.png", "ExecuteFileName": "main.py",
+    }
+    (tmp_path / "plugin.json").write_text(json.dumps(manifest))
+    (tmp_path / "main.py").write_text(PASCAL_CASE_V2_PLUGIN)
+
+    results = Plugin(str(tmp_path)).run_plugin("doom")
+
+    assert results == [
+        {"Title": "Doom Eternal", "SubTitle": "Launch Doom Eternal", "IcoPath": "icon.png", "Score": 100},
+    ]

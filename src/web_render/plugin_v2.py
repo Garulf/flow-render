@@ -133,6 +133,26 @@ def _plugin_metadata(manifest: PluginManifest, plugin_path: str, execute_path: s
     }
 
 
+def _first(result: dict, *keys: str, default: Any = "") -> Any:
+    for key in keys:
+        value = result.get(key)
+        if value is not None:
+            return value
+    return default
+
+
+def _normalize_result(result: dict) -> Dict[str, Any]:
+    # V2 plugin SDKs disagree on result key casing: flogin uses camelCase
+    # (title/subTitle/icoPath/score), pyflowlauncher uses PascalCase
+    # (Title/SubTitle/IcoPath/Score, matching the original V1 protocol).
+    return {
+        "Title": _first(result, "title", "Title"),
+        "SubTitle": _first(result, "subTitle", "SubTitle"),
+        "IcoPath": _first(result, "icoPath", "IcoPath"),
+        "Score": _first(result, "score", "Score", default=0),
+    }
+
+
 def run_plugin(plugin_path: str, execute_path: str, manifest: PluginManifest, query: str) -> List[Dict[str, Any]]:
     process = subprocess.Popen(
         [sys.executable, execute_path],
@@ -170,12 +190,4 @@ def run_plugin(plugin_path: str, execute_path: str, manifest: PluginManifest, qu
             process.kill()
         stderr_reader.join(timeout=2)
 
-    return [
-        {
-            "Title": result.get("title", ""),
-            "SubTitle": result.get("subTitle", ""),
-            "IcoPath": result.get("icoPath", ""),
-            "Score": result.get("score", 0),
-        }
-        for result in response.get("result", [])
-    ]
+    return [_normalize_result(result) for result in response.get("result", [])]
