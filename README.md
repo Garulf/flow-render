@@ -128,6 +128,11 @@ See `example/config.json`:
   variants ship (`hero.css`, `hero1.css` … `hero4.css`, `style.css`, `win11-light.css`,
   `win11-dark.css` — the last two mimic Flow Launcher's "Windows 11" theme). Templates resolve
   the same way, so a local `base.html` overrides the bundled one.
+- For product-page hero shots, `hero-win11-light.css` and `hero-win11-dark.css` render the
+  launcher centered on a mock Windows 11 desktop — taskbar, start button, pinned icons, and
+  a couple of blank cascaded windows behind it — using the real `win11-light.css`/`win11-dark.css`
+  launcher chrome. `hero-win11-accent.css` is the same desktop mockup with a saturated accent
+  wallpaper instead, on the default launcher theme.
 - Generated Flow Launcher themes live in the bundled `static/themes/` — use them with
   `"css": "themes/dracula.css"` (or `themes/win11light-dark.css`, etc.).
   Regenerate them from the current Flow Launcher release with `make themes`,
