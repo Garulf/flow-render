@@ -109,3 +109,48 @@ def test_run_plugin_v2_raises_on_real_error(tmp_path):
 
     with pytest.raises(PluginV2Error, match="plugin blew up"):
         Plugin(str(tmp_path)).run_plugin("query")
+
+
+NOISY_STDERR_V2_PLUGIN = '''
+import json
+import sys
+
+
+def send(message_id, result):
+    sys.stdout.write(json.dumps({"jsonrpc": "2.0", "id": message_id, "result": result, "error": None}) + "\\n")
+    sys.stdout.flush()
+
+
+for line in sys.stdin:
+    line = line.strip()
+    if not line:
+        continue
+    message = json.loads(line)
+    if message.get("method") == "initialize":
+        send(message["id"], {"hide": False})
+    elif message.get("method") == "query":
+        # Write more than a pipe buffer's worth of stderr before responding.
+        # If the caller isn't draining stderr concurrently, this write blocks
+        # forever and the caller sees a false "timed out" instead of a result.
+        for _ in range(20000):
+            print("noisy log line", file=sys.stderr)
+        send(message["id"], {
+            "debugMessage": "",
+            "settingsChange": {},
+            "result": [{"title": "a", "subTitle": "", "icoPath": "", "score": 1}],
+        })
+'''
+
+
+def test_run_plugin_v2_does_not_deadlock_on_noisy_stderr(tmp_path):
+    manifest = {
+        "ID": "1", "ActionKeyword": "t", "Name": "Test", "Description": "",
+        "Author": "", "Version": "1.0", "Language": "python_v2", "Website": "",
+        "IcoPath": "icon.png", "ExecuteFileName": "main.py",
+    }
+    (tmp_path / "plugin.json").write_text(json.dumps(manifest))
+    (tmp_path / "main.py").write_text(NOISY_STDERR_V2_PLUGIN)
+
+    results = Plugin(str(tmp_path)).run_plugin("query")
+
+    assert [r["Title"] for r in results] == ["a"]
