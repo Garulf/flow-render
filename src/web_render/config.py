@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field, asdict
-from typing import List, Optional
+from typing import List, Optional, Union
 import json
 from pathlib import Path
 
@@ -20,12 +20,20 @@ class Config:
     max_results: int = 3
     selection: int = 0
     results: List[PluginResult] = field(default_factory=list)
-    css: Optional[str] = None
+    css: Optional[Union[str, List[str]]] = None
     query_suggestion: Optional[str] = None
 
     def __post_init__(self):
         if not self.query_suggestion:
             self.query_suggestion = self.suggested_query
+
+    @property
+    def css_files(self) -> List[str]:
+        if not self.css:
+            return []
+        if isinstance(self.css, str):
+            return [self.css]
+        return list(self.css)
 
     @property
     def suggested_query(self) -> str:

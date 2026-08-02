@@ -63,6 +63,24 @@ def test_from_file_round_trips_through_save(tmp_path):
     assert Config.from_file(str(saved)) == original
 
 
+def test_css_files_empty_when_css_not_set():
+    config = make_config()
+
+    assert config.css_files == []
+
+
+def test_css_files_wraps_single_stylesheet():
+    config = make_config(css="win11-dark.css")
+
+    assert config.css_files == ["win11-dark.css"]
+
+
+def test_css_files_returns_list_as_is():
+    config = make_config(css=["win11-dark.css", "ad-neon.css"])
+
+    assert config.css_files == ["win11-dark.css", "ad-neon.css"]
+
+
 def test_plugin_to_config_caps_and_orders_results(tmp_path, monkeypatch):
     manifest = {
         "ID": "1", "ActionKeyword": "t", "Name": "Test", "Description": "",

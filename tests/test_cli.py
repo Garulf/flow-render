@@ -65,9 +65,20 @@ def test_setup_with_css_sets_config_css(tmp_path, monkeypatch):
     rendered = {}
     monkeypatch.setattr(cli, "main", lambda config, output_dir=None: rendered.update(config=config, output_dir=output_dir))
 
-    cli.setup(Namespace(config=None, plugin=str(tmp_path), plugin_url=None, query="q", i=False, css="win11-dark.css", output=None))
+    cli.setup(Namespace(config=None, plugin=str(tmp_path), plugin_url=None, query="q", i=False, css=["win11-dark.css"], output=None))
 
     assert rendered["config"].css == "win11-dark.css"
+
+
+def test_setup_with_multiple_css_sets_config_css_list(tmp_path, monkeypatch):
+    (tmp_path / "plugin.json").write_text(json.dumps(MANIFEST))
+    (tmp_path / "main.py").write_text(MAIN_PY)
+    rendered = {}
+    monkeypatch.setattr(cli, "main", lambda config, output_dir=None: rendered.update(config=config, output_dir=output_dir))
+
+    cli.setup(Namespace(config=None, plugin=str(tmp_path), plugin_url=None, query="q", i=False, css=["win11-dark.css", "ad-neon.css"], output=None))
+
+    assert rendered["config"].css == ["win11-dark.css", "ad-neon.css"]
 
 
 def test_setup_passes_output_flag_through_to_main(tmp_path, monkeypatch):
@@ -89,7 +100,13 @@ def test_get_args_rejects_plugin_and_plugin_url_together():
 def test_get_args_parses_css_flag():
     args = cli.get_args(["-p", "./plugin", "-s", "win11-dark.css"])
 
-    assert args.css == "win11-dark.css"
+    assert args.css == ["win11-dark.css"]
+
+
+def test_get_args_parses_multiple_css_flags():
+    args = cli.get_args(["-p", "./plugin", "-s", "win11-dark.css", "ad-neon.css"])
+
+    assert args.css == ["win11-dark.css", "ad-neon.css"]
 
 
 def test_get_args_parses_output_flag():

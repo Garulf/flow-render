@@ -81,7 +81,7 @@ web-render -c ./example/config.json
 | `-u`, `--plugin-url` | URL or local path to a plugin `.zip`; extracted to a temp dir and used like `-p` |
 | `-q`, `--query` | Query to run against the plugin |
 | `-i` | Render the plugin-manager "pm install" view for the given plugin (works with `-p` or `-u`) instead of running a query |
-| `-s`, `--css` | Stylesheet to render with, e.g. `win11-dark.css` (only applies with `-p`/`-u`; a config file's own `css` field takes precedence with `-c`) |
+| `-s`, `--css` | Stylesheet(s) to render with, e.g. `win11-dark.css` or `win11-dark.css ad-neon.css` (only applies with `-p`/`-u`; a config file's own `css` field takes precedence with `-c`) |
 | `-o`, `--output` | Directory to save the rendered PNG in (defaults to a per-user data directory, see above) |
 
 With `-p`, the plugin's `ExecuteFileName` is invoked as a subprocess with a
@@ -122,8 +122,9 @@ See `example/config.json`:
   resolved and inlined automatically.
 - `selection` is the index of the highlighted row.
 - `query_suggestion` is auto-filled from the selected result's title when left empty.
-- `css` names a stylesheet to inline on top of the default `style.css` (its rules win
-  the cascade). It is looked
+- `css` names a stylesheet (or a list of stylesheets, e.g. `["win11-dark.css", "ad-neon.css"]`)
+  to inline on top of the default `style.css`. Each is applied in order, so later
+  entries win the cascade over earlier ones. Each is looked
   up relative to the working directory first, then in the bundled `static/`, where several
   variants ship (`hero.css`, `hero1.css` … `hero4.css`, `style.css`, `win11-light.css`,
   `win11-dark.css` — the last two mimic Flow Launcher's "Windows 11" theme). Templates resolve

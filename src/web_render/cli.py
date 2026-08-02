@@ -18,7 +18,7 @@ def get_args(seq: Sequence[str]) -> Namespace:
     parser.add_argument('-c', '--config', help="Path to the config file")
     parser.add_argument('-q', '--query', help="Query to run")
     parser.add_argument('-i', action='store_true', help="Use plugin manager")
-    parser.add_argument('-s', '--css', help="Stylesheet to render with (e.g. win11-dark.css)")
+    parser.add_argument('-s', '--css', nargs='+', help="Stylesheet(s) to render with (e.g. win11-dark.css ad-neon.css)")
     parser.add_argument('-o', '--output', help="Directory to save the rendered PNG in (defaults to a per-user data directory)")
 
     return parser.parse_args(seq)
@@ -27,7 +27,10 @@ def get_args(seq: Sequence[str]) -> Namespace:
 def config_from_plugin(plugin: Plugin, args: Namespace) -> Config:
     config = plugin_manager_config(plugin) if args.i else plugin_to_config(plugin, args.query)
     if args.css:
-        config.css = args.css
+        css = args.css
+        if isinstance(css, list) and len(css) == 1:
+            css = css[0]
+        config.css = css
     return config
 
 
