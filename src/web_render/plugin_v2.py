@@ -26,18 +26,20 @@ def _send(process: subprocess.Popen, message_id: int, method: str, params: list)
     process.stdin.flush()
 
 
-def _read_response(line_queue: "queue.Queue[Optional[str]]", message_id: int, timeout: float) -> dict:
+def _read_response(process: subprocess.Popen, line_queue: "queue.Queue[Optional[str]]", message_id: int, timeout: float) -> dict:
     try:
         while True:
             line = line_queue.get(timeout=timeout)
             if line is None:
-                raise PluginV2Error("Plugin process closed its output stream before responding")
+                stderr = process.stderr.read() if process.stderr else ""
+                detail = f": {stderr.strip()}" if stderr.strip() else ""
+                raise PluginV2Error(f"Plugin process exited before responding{detail}")
             line = line.strip()
             if not line:
                 continue
             message = json.loads(line)
             if message.get("id") == message_id:
-                if "error" in message:
+                if message.get("error") is not None:
                     raise PluginV2Error(f"Plugin returned an error: {message['error']}")
                 return message["result"]
     except queue.Empty:
@@ -68,7 +70,7 @@ def run_plugin(plugin_path: str, execute_path: str, manifest: PluginManifest, qu
         cwd=plugin_path,
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
-        stderr=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
         text=True,
         bufsize=1,
     )
@@ -78,14 +80,14 @@ def run_plugin(plugin_path: str, execute_path: str, manifest: PluginManifest, qu
 
     try:
         _send(process, 1, "initialize", [{"currentPluginMetadata": _plugin_metadata(manifest, plugin_path, execute_path)}])
-        _read_response(line_queue, 1, TIMEOUT_SECONDS)
+        _read_response(process, line_queue, 1, TIMEOUT_SECONDS)
 
         full_query = f"{manifest.ActionKeyword} {query}".strip()
         _send(process, 2, "query", [
             {"search": query, "rawQuery": full_query, "isReQuery": False, "actionKeyword": manifest.ActionKeyword},
             {},
         ])
-        response = _read_response(line_queue, 2, TIMEOUT_SECONDS)
+        response = _read_response(process, line_queue, 2, TIMEOUT_SECONDS)
     finally:
         process.terminate()
         try:
