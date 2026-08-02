@@ -154,3 +154,73 @@ def test_run_plugin_v2_does_not_deadlock_on_noisy_stderr(tmp_path):
     results = Plugin(str(tmp_path)).run_plugin("query")
 
     assert [r["Title"] for r in results] == ["a"]
+
+
+# Mimics pyflowlauncher's FlowLauncherV2 launcher: a plugin that calls back
+# into the host's "FuzzySearch" method (an inbound request, not a reply to
+# one of our own) for every candidate before deciding whether to include it.
+# If the host never answers, real plugins built this way silently swallow
+# the resulting timeout and return an empty result list.
+CALLBACK_V2_PLUGIN = '''
+import json
+import sys
+
+_next_id = [100]
+
+
+def send(payload):
+    sys.stdout.write(json.dumps(payload) + "\\n")
+    sys.stdout.flush()
+
+
+def fuzzy_search(query, text):
+    _next_id[0] += 1
+    request_id = _next_id[0]
+    send({"jsonrpc": "2.0", "id": request_id, "method": "FuzzySearch", "params": [query, text]})
+    while True:
+        line = sys.stdin.readline()
+        if not line:
+            raise RuntimeError("host closed the stream")
+        line = line.strip()
+        if not line:
+            continue
+        message = json.loads(line)
+        if message.get("id") == request_id and "method" not in message:
+            return message["result"]
+
+
+for line in sys.stdin:
+    line = line.strip()
+    if not line:
+        continue
+    message = json.loads(line)
+    if message.get("method") == "initialize":
+        send({"jsonrpc": "2.0", "id": message["id"], "result": {"hide": False}, "error": None})
+    elif message.get("method") == "query":
+        query = message["params"][0]["search"]
+        results = []
+        for candidate in ["doom eternal", "unrelated game"]:
+            match = fuzzy_search(query, candidate)
+            if match["success"]:
+                results.append({"title": candidate, "subTitle": "", "icoPath": "", "score": match["score"]})
+        send({
+            "jsonrpc": "2.0",
+            "id": message["id"],
+            "result": {"debugMessage": "", "settingsChange": {}, "result": results},
+            "error": None,
+        })
+'''
+
+
+def test_run_plugin_v2_answers_inbound_fuzzy_search_callbacks(tmp_path):
+    manifest = {
+        "ID": "1", "ActionKeyword": "t", "Name": "Test", "Description": "",
+        "Author": "", "Version": "1.0", "Language": "python_v2", "Website": "",
+        "IcoPath": "icon.png", "ExecuteFileName": "main.py",
+    }
+    (tmp_path / "plugin.json").write_text(json.dumps(manifest))
+    (tmp_path / "main.py").write_text(CALLBACK_V2_PLUGIN)
+
+    results = Plugin(str(tmp_path)).run_plugin("doom")
+
+    assert [r["Title"] for r in results] == ["doom eternal"]

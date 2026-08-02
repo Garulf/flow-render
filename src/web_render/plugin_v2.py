@@ -3,11 +3,13 @@ import queue
 import subprocess
 import sys
 import threading
+from difflib import SequenceMatcher
 from typing import Any, Dict, List, Optional
 
 from .plugin_manifest import PluginManifest
 
 TIMEOUT_SECONDS = 30.0
+SEARCH_PRECISION = 50
 
 
 class PluginV2Error(RuntimeError):
@@ -26,10 +28,53 @@ def _stderr_collector(stderr, buffer: List[str], lock: threading.Lock) -> None:
             buffer.append(line)
 
 
-def _send(process: subprocess.Popen, message_id: int, method: str, params: list) -> None:
-    payload = {"jsonrpc": "2.0", "id": message_id, "method": method, "params": params}
+def _send(process: subprocess.Popen, payload: dict) -> None:
     process.stdin.write(json.dumps(payload) + "\n")
     process.stdin.flush()
+
+
+def _send_request(process: subprocess.Popen, message_id: int, method: str, params: list) -> None:
+    _send(process, {"jsonrpc": "2.0", "id": message_id, "method": method, "params": params})
+
+
+def _fuzzy_search(query: str, text: str) -> dict:
+    if not query:
+        return {"success": True, "score": 100, "rawScore": 100, "matchData": [], "searchPrecision": SEARCH_PRECISION}
+    if not text:
+        return {"success": False, "score": 0, "rawScore": 0, "matchData": [], "searchPrecision": SEARCH_PRECISION}
+
+    query_lower = query.lower()
+    text_lower = text.lower()
+    index = text_lower.find(query_lower)
+    if index != -1:
+        match_data = list(range(index, index + len(query_lower)))
+        score = min(100, 60 + int(40 * len(query_lower) / len(text_lower)) + (20 if index == 0 else 0))
+    else:
+        match_data = []
+        score = int(SequenceMatcher(None, query_lower, text_lower).ratio() * 100)
+
+    return {
+        "success": score >= SEARCH_PRECISION,
+        "score": score,
+        "rawScore": score,
+        "matchData": match_data,
+        "searchPrecision": SEARCH_PRECISION,
+    }
+
+
+def _handle_inbound_request(process: subprocess.Popen, message: dict) -> None:
+    method = message.get("method")
+    request_id = message.get("id")
+    params = message.get("params", message.get("parameters", []))
+
+    if method == "FuzzySearch":
+        query, text = (list(params) + ["", ""])[:2]
+        result: Any = _fuzzy_search(str(query or ""), str(text or ""))
+    else:
+        result = {}
+
+    if request_id is not None:
+        _send(process, {"id": request_id, "result": result, "error": None})
 
 
 def _stderr_detail(stderr_lines: List[str], lock: threading.Lock) -> str:
@@ -59,6 +104,9 @@ def _read_response(
             if not line:
                 continue
             message = json.loads(line)
+            if "method" in message:
+                _handle_inbound_request(process, message)
+                continue
             if message.get("id") == message_id:
                 if message.get("error") is not None:
                     raise PluginV2Error(f"Plugin returned an error: {message['error']}")
@@ -105,11 +153,11 @@ def run_plugin(plugin_path: str, execute_path: str, manifest: PluginManifest, qu
     stderr_reader.start()
 
     try:
-        _send(process, 1, "initialize", [{"currentPluginMetadata": _plugin_metadata(manifest, plugin_path, execute_path)}])
+        _send_request(process, 1, "initialize", [{"currentPluginMetadata": _plugin_metadata(manifest, plugin_path, execute_path)}])
         _read_response(process, line_queue, 1, TIMEOUT_SECONDS, stderr_lines, stderr_lock)
 
         full_query = f"{manifest.ActionKeyword} {query}".strip()
-        _send(process, 2, "query", [
+        _send_request(process, 2, "query", [
             {"search": query, "rawQuery": full_query, "isReQuery": False, "actionKeyword": manifest.ActionKeyword},
             {},
         ])
