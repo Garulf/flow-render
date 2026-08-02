@@ -9,7 +9,7 @@ def capture_screenshot(html_path: str) -> Path:
     image_file = Path(html_path).with_suffix('.png')
     image_file.parent.mkdir(parents=True, exist_ok=True)
     with sync_playwright() as playwright:
-        browser = playwright.chromium.launch()
+        browser = playwright.chromium.launch(channel="chromium")
         page = browser.new_page(device_scale_factor=RENDER_SCALE)
         page.goto(page_url)
         page.screenshot(
