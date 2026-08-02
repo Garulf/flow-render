@@ -20,12 +20,13 @@ def get_args(seq: Sequence[str]) -> Namespace:
     parser.add_argument('-i', action='store_true', help="Use plugin manager")
     parser.add_argument('-s', '--css', nargs='+', help="Stylesheet(s) to render with (e.g. win11-dark.css ad-neon.css)")
     parser.add_argument('-o', '--output', help="Directory to save the rendered PNG in (defaults to a per-user data directory)")
+    parser.add_argument('-m', '--max-results', type=int, default=3, help="Maximum number of results to render (only applies with -p/-u; default: 3)")
 
     return parser.parse_args(seq)
 
 
 def config_from_plugin(plugin: Plugin, args: Namespace) -> Config:
-    config = plugin_manager_config(plugin) if args.i else plugin_to_config(plugin, args.query)
+    config = plugin_manager_config(plugin) if args.i else plugin_to_config(plugin, args.query, max_results=args.max_results)
     if args.css:
         css = args.css
         if isinstance(css, list) and len(css) == 1:

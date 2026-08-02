@@ -83,6 +83,7 @@ web-render -c ./example/config.json
 | `-i` | Render the plugin-manager "pm install" view for the given plugin (works with `-p` or `-u`) instead of running a query |
 | `-s`, `--css` | Stylesheet(s) to render with, e.g. `win11-dark.css` or `win11-dark.css ad-neon.css` (only applies with `-p`/`-u`; a config file's own `css` field takes precedence with `-c`) |
 | `-o`, `--output` | Directory to save the rendered PNG in (defaults to a per-user data directory, see above) |
+| `-m`, `--max-results` | Maximum number of results to render (only applies with `-p`/`-u`; default: 3) |
 
 With `-p`, the plugin's `ExecuteFileName` is invoked as a subprocess with a
 `{"method": "query", "parameters": [query]}` request and its results become the
