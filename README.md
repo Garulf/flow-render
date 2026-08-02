@@ -123,6 +123,10 @@ See `example/config.json`:
   resolved and inlined automatically.
 - `selection` is the index of the highlighted row.
 - `query_suggestion` is auto-filled from the selected result's title when left empty.
+- `max_results` also controls a cosmetic scrollbar: when `results` has at least
+  `max_results` entries, a scrollbar thumb is drawn on the results list to suggest more
+  results exist below (this tool renders a single static screenshot, so it's a visual cue
+  only, not an actually scrollable list).
 - `css` names a stylesheet (or a list of stylesheets, e.g. `["win11-dark.css", "ad-neon.css"]`)
   to inline on top of the default `style.css`. Each is applied in order, so later
   entries win the cascade over earlier ones. Each is looked
