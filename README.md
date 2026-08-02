@@ -74,7 +74,7 @@ web-render -c ./example/config.json
 | `-p`, `--plugin` | Path to a Flow Launcher plugin directory (read via its `plugin.json`) |
 | `-u`, `--plugin-url` | URL or local path to a plugin `.zip`; extracted to a temp dir and used like `-p` |
 | `-q`, `--query` | Query to run against the plugin |
-| `-i` | Render the plugin-manager view for the given plugin |
+| `-i` | Render the plugin-manager "pm install" view for the given plugin (works with `-p` or `-u`) instead of running a query |
 | `-s`, `--css` | Stylesheet to render with, e.g. `win11-dark.css` (only applies with `-p`/`-u`; a config file's own `css` field takes precedence with `-c`) |
 
 With `-p`, the plugin's `ExecuteFileName` is invoked as a subprocess with a
@@ -82,6 +82,11 @@ With `-p`, the plugin's `ExecuteFileName` is invoked as a subprocess with a
 rendered rows. `-u` is mutually exclusive with `-p` — the zip is extracted to a
 temporary directory (its `plugin.json` is located automatically, even if the zip
 wraps everything in a subfolder), then handled exactly like `-p`.
+
+With `-i`, no query is run — instead it renders the plugin-manager mockup you'd see
+after typing `pm install <name>`: query box shows `pm install {Name}`, and the single
+result is `{Name} by {Author}` / `{Description}`, all read straight from the plugin's
+`plugin.json`.
 
 ## Config format
 

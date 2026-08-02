@@ -79,3 +79,46 @@ def test_get_args_parses_css_flag():
     args = cli.get_args(["-p", "./plugin", "-s", "win11-dark.css"])
 
     assert args.css == "win11-dark.css"
+
+
+PLUGIN_MANAGER_MANIFEST = {
+    "ID": "1", "ActionKeyword": "t", "Name": "Steam Search", "Description": "Search and launch your Steam Game library",
+    "Author": "Garulf", "Version": "1.0", "Language": "python", "Website": "",
+    "IcoPath": "icon.png", "ExecuteFileName": "main.py",
+}
+
+
+def test_setup_with_plugin_and_i_renders_plugin_manager_view(tmp_path, monkeypatch):
+    (tmp_path / "plugin.json").write_text(json.dumps(PLUGIN_MANAGER_MANIFEST))
+    (tmp_path / "main.py").write_text(MAIN_PY)
+    rendered = {}
+    monkeypatch.setattr(cli, "main", lambda config: rendered.update(config=config))
+
+    cli.setup(Namespace(config=None, plugin=str(tmp_path), plugin_url=None, query=None, i=True, css=None))
+
+    config = rendered["config"]
+    assert config.query == "pm install Steam Search"
+    assert config.results[0]["title"] == "Steam Search by Garulf"
+    assert config.results[0]["subtitle"] == "Search and launch your Steam Game library"
+
+
+def test_setup_with_plugin_url_and_i_renders_plugin_manager_view(tmp_path, monkeypatch):
+    plugin_dir = tmp_path / "plugin"
+    plugin_dir.mkdir()
+    (plugin_dir / "plugin.json").write_text(json.dumps(PLUGIN_MANAGER_MANIFEST))
+    (plugin_dir / "main.py").write_text(MAIN_PY)
+
+    zip_path = tmp_path / "plugin.zip"
+    with zipfile.ZipFile(zip_path, "w") as archive:
+        for file in plugin_dir.iterdir():
+            archive.write(file, file.name)
+
+    rendered = {}
+    monkeypatch.setattr(cli, "main", lambda config: rendered.update(config=config))
+
+    cli.setup(Namespace(config=None, plugin=None, plugin_url=str(zip_path), query=None, i=True, css=None))
+
+    config = rendered["config"]
+    assert config.query == "pm install Steam Search"
+    assert config.results[0]["title"] == "Steam Search by Garulf"
+    assert config.results[0]["subtitle"] == "Search and launch your Steam Game library"
