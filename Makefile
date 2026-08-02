@@ -1,8 +1,6 @@
 SHELL := /usr/bin/env bash
 
-PYTHON ?= python3
 VENV ?= .venv
-REQUIREMENTS ?= requirements.in
 VENV_PY := $(VENV)/bin/python
 
 CLI_ARGS :=
@@ -22,7 +20,7 @@ ifneq ($(strip $(EXTRA_ARGS)),)
 CLI_ARGS += $(EXTRA_ARGS)
 endif
 
-.PHONY: help setup playwright run
+.PHONY: help setup playwright run themes
 
 help:
 	@echo "Targets:"
@@ -33,20 +31,17 @@ help:
 	@echo "  make run EXTRA_ARGS='-c ./config2.json'"
 	@echo
 	@echo "Variables:"
-	@echo "  PYTHON=python3 VENV=.venv REQUIREMENTS=requirements.in"
+	@echo "  VENV=.venv"
 	@echo "  CONFIG, PLUGIN, QUERY, PLUGIN_MANAGER=1, SKIP_PLAYWRIGHT=1, EXTRA_ARGS"
 
 setup:
 	@if [ -x "$(VENV_PY)" ]; then \
-		echo "Existing virtual environment detected; skipping venv creation and dependency installation."; \
+		echo "Existing virtual environment detected; syncing dependencies."; \
 	else \
 		echo "Creating virtual environment at $(VENV)"; \
-		$(PYTHON) -m venv "$(VENV)"; \
-		echo "Upgrading pip in virtual environment"; \
-		"$(VENV_PY)" -m pip install --upgrade pip; \
-		echo "Installing dependencies from $(REQUIREMENTS)"; \
-		"$(VENV_PY)" -m pip install -r "$(REQUIREMENTS)"; \
+		uv venv "$(VENV)"; \
 	fi
+	@uv pip install -e . --group dev -p "$(VENV_PY)"
 
 playwright: setup
 	@if [ "$(SKIP_PLAYWRIGHT)" = "1" ]; then \
@@ -66,5 +61,9 @@ playwright: setup
 	fi
 
 run: playwright
-	@echo "Running cli.py"
-	@"$(VENV_PY)" src/cli.py $(CLI_ARGS)
+	@echo "Running web-render"
+	@"$(VENV)/bin/web-render" $(CLI_ARGS)
+
+themes: setup
+	@echo "Converting Flow Launcher themes..."
+	@"$(VENV_PY)" -m web_render.convert_themes

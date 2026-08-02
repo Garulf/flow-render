@@ -1,0 +1,29 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "web-render"
+version = "0.1.0"
+description = "Render a Flow Launcher plugin result as a screenshot"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "jinja2",
+    "python-datauri",
+    "pillow",
+    "httpx",
+    "playwright",
+    "pywin32; sys_platform == 'win32'",
+]
+
+[project.scripts]
+web-render = "web_render.cli:run"
+
+[dependency-groups]
+dev = [
+    "pytest",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/web_render"]

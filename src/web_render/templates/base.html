@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        /* Selawik stands in for Segoe UI so renders match on any platform. */
+        @font-face {
+            font-family: 'Segoe UI';
+            font-weight: normal;
+            src: url('{{ static_url }}/fonts/selawk.woff2') format('woff2');
+        }
+        @font-face {
+            font-family: 'Segoe UI';
+            font-weight: bold;
+            src: url('{{ static_url }}/fonts/selawkb.woff2') format('woff2');
+        }
+        {% set css_file = css if css else 'style.css' %}
+        {% filter indent(width=8) %}
+        {%- include 'style.css' ignore missing %}
+        {% if css_file != 'style.css' %}
+        {%- include css_file ignore missing %}
+        {% endif %}
+        {% endfilter %}
+    </style>
+
+
+
+</head>
+<body>
+    <div>
+        <div id="Preview">
+            <div id="WindowBorder">
+                <div id="QueryBoxArea">
+                    <div>
+                      <div id="QueryBoxText">{{ render_data.keyword }} {{ query }}</div>
+                        <div id="QueryBoxSuggestion">{{ query_suggestion }}</div>
+                        <div id="GlassIcon"><img src="{{ icon }}" width="32" height="32"></div>
+                    </div>
+                </div>
+                <div id="Separator"></div>
+                {% for result in results %}
+                    <div class="item {{ 'selecteditem' if selection == loop.index0 else '' }}">
+                        <div class="icon">
+                            <img src="{{ result.icon }}" width="38" height="38">
+                        </div>
+                        <div class="item-text-container">
+                            <div class="Title">{{ result.title }}</div>
+                            <div class="SubTitle">{{ result.subtitle }}</div>
+                        </div>
+                        <div class="Hotkey">{{ 'Alt+' ~ loop.index if loop.index <= 9 else '' }}</div>
+                    </div>
+                {% endfor %}
+        </div>
+    </div>
+</body>
+</html>

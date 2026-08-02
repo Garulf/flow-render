@@ -10,7 +10,7 @@ screenshots for READMEs and store listings without staging a real launcher windo
 
 1. A `Config` (from a JSON file, or built by running a real plugin) describes the
    search bar and its results.
-2. `renderer.py` renders `src/templates/base.html` with Jinja2 into `build/output.html`.
+2. `renderer.py` renders `templates/base.html` with Jinja2 into `build/output.html`.
 3. `screenshot.py` loads that file in headless Chromium and screenshots it with a
    transparent background.
 4. `image.py` crops to the smallest bounding box and writes
@@ -20,9 +20,18 @@ screenshots for READMEs and store listings without staging a real launcher windo
 
 ## Requirements
 
-- Python 3
+- Python 3.10+
 - Chromium via Playwright (installed automatically by the run scripts)
-- Dependencies in `requirements.in` (`pywin32` is Windows-only)
+
+## Install
+
+Install as a standalone CLI with [uv](https://docs.astral.sh/uv/):
+
+```bash
+uv tool install .
+playwright install chromium
+web-render -c ./example/config.json
+```
 
 ## Usage
 
@@ -41,8 +50,8 @@ make run PLUGIN_MANAGER=1 PLUGIN=./path/to/plugin
 make run CONFIG=./example/config.json SKIP_PLAYWRIGHT=1   # skip the Chromium install step
 ```
 
-`make` creates `.venv`, installs `requirements.in`, and installs Chromium on first
-run; later runs reuse the existing venv.
+`make` creates `.venv`, installs the package with `uv pip install -e .`, and installs
+Chromium on first run; later runs reuse the existing venv.
 
 ### Windows
 
@@ -56,7 +65,7 @@ the Chromium install needs it, then forwards all arguments to the CLI.
 ### Direct CLI
 
 ```bash
-python src/cli.py -c ./example/config.json
+web-render -c ./example/config.json
 ```
 
 | Flag | Meaning |
@@ -97,7 +106,13 @@ See `example/config.json`:
   resolved and inlined automatically.
 - `selection` is the index of the highlighted row.
 - `query_suggestion` is auto-filled from the selected result's title when left empty.
-- `css` names the stylesheet to inline instead of the default `style.css`. It is looked
-  up relative to the working directory first, then in `src/static/`, where several
-  variants ship (`hero.css`, `hero1.css` … `hero4.css`, `style.css`). Templates resolve
+- `css` names a stylesheet to inline on top of the default `style.css` (its rules win
+  the cascade). It is looked
+  up relative to the working directory first, then in the bundled `static/`, where several
+  variants ship (`hero.css`, `hero1.css` … `hero4.css`, `style.css`, `win11-light.css`,
+  `win11-dark.css` — the last two mimic Flow Launcher's "Windows 11" theme). Templates resolve
   the same way, so a local `base.html` overrides the bundled one.
+- Generated Flow Launcher themes live in the bundled `static/themes/` — use them with
+  `"css": "themes/dracula.css"` (or `themes/win11light-dark.css`, etc.).
+  Regenerate them from the current Flow Launcher release with `make themes`,
+  which refreshes the vendored XAML in `themes/xaml/` and rewrites the CSS.

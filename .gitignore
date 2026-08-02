@@ -48,6 +48,7 @@ htmlcov/
 
 # Build and packaging artifacts
 build/
+dist/
 site/
 *.egg-info/
 .eggs/

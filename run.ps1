@@ -40,16 +40,16 @@ $workspaceRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $workspaceRoot
 
 $venvPath = ".venv"
-$requirementsFile = "requirements.in"
 $skipPlaywrightInstall = $false
 
 $venvFullPath = Join-Path $workspaceRoot $venvPath
 $venvPython = Join-Path $venvFullPath "Scripts\python.exe"
+$venvExe = Join-Path $venvFullPath "Scripts\web-render.exe"
 $venvAlreadyExisted = Test-Path $venvPython
 
 if (-not (Test-Path $venvPython)) {
     Write-Host "Creating virtual environment at $venvFullPath"
-    py -3 -m venv $venvFullPath
+    uv venv $venvFullPath
 }
 
 if (-not (Test-Path $venvPython)) {
@@ -57,31 +57,16 @@ if (-not (Test-Path $venvPython)) {
 }
 
 if ($venvAlreadyExisted) {
-    Write-Host "Existing virtual environment detected; skipping venv creation and dependency installation."
-} else {
-    Write-Host "Upgrading pip in virtual environment"
-    & $venvPython -m pip install --upgrade pip
-
-    $requirementsPath = Join-Path $workspaceRoot $requirementsFile
-    if (-not (Test-Path $requirementsPath)) {
-        throw "Requirements file not found: $requirementsPath"
-    }
-
-    Write-Host "Installing dependencies from $requirementsFile"
-    & $venvPython -m pip install -r $requirementsPath
+    Write-Host "Existing virtual environment detected; syncing dependencies."
 }
+uv pip install -e . --group dev -p $venvPython
 
 if (-not $skipPlaywrightInstall) {
     Invoke-PlaywrightInstall -PythonExe $venvPython
 }
 
-$cliPath = Join-Path $workspaceRoot "src\cli.py"
-if (-not (Test-Path $cliPath)) {
-    throw "CLI entrypoint not found: $cliPath"
-}
-
 $resolvedCliArgs = @($args)
 
-Write-Host "Running cli.py"
-& $venvPython $cliPath @resolvedCliArgs
+Write-Host "Running web-render"
+& $venvExe @resolvedCliArgs
 exit $LASTEXITCODE
