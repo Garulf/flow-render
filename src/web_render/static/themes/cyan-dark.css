@@ -192,6 +192,9 @@ body {
     border-radius: 0px;
     margin: 0px;
 }
+#ResultsScrollbar .thumb {
+    background-color: #C0C0C0;
+}
 .selecteditem {
     background-color: #1e292f;
 }

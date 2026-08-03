@@ -75,6 +75,10 @@ body {
     background-color: #2D2D2D;
 }
 
+#ResultsScrollbar .thumb {
+    background-color: #454545;
+}
+
 .item {
     display: block;
     position: relative;

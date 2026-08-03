@@ -1,6 +1,8 @@
 import math
 import re
 
+from .theme_parser import FALLBACK_RESOURCES
+
 NAMED_COLORS = {
     'white': '#FFFFFF',
     'black': '#000000',
@@ -139,6 +141,8 @@ def theme_to_css(theme, mode: str) -> str:
         value = theme.resources.get(resource_key)
         if value is not None:
             declarations.setdefault(selector, {})[css_prop] = transform(value, kind, window_bg)
+    thumb_color = theme.resources.get('ThumbColor', FALLBACK_RESOURCES[mode]['ThumbColor'])
+    declarations.setdefault('#ResultsScrollbar .thumb', {})['background-color'] = transform(thumb_color, 'color', window_bg)
     if 'background' not in declarations.get('#WindowBorder', {}):
         declarations.setdefault('#WindowBorder', {}).setdefault('background-color', window_bg)
     selected = selected_row_rule(theme, window_bg)

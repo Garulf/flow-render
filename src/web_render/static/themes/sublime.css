@@ -183,6 +183,9 @@ body {
 #GlassIcon {
     color: #3c454e;
 }
+#ResultsScrollbar .thumb {
+    background-color: #C0C0C0;
+}
 .selecteditem {
     background-color: #3c454e;
 }

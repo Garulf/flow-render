@@ -95,6 +95,23 @@ def test_emits_bullet_and_metrics():
     assert "border-radius: 5px;" in item_block
 
 
+def test_emits_theme_accurate_scrollbar_thumb_color():
+    dark_css = theme_to_css(make_resolved_theme(), "dark")
+    light_css = theme_to_css(make_resolved_theme(), "light")
+
+    assert "#ResultsScrollbar .thumb {\n    background-color: #454545;" in dark_css
+    assert "#ResultsScrollbar .thumb {\n    background-color: #C0C0C0;" in light_css
+
+
+def test_scrollbar_thumb_color_prefers_theme_defined_resource():
+    theme = make_resolved_theme()
+    theme.resources["ThumbColor"] = "#ff79c6"
+
+    css = theme_to_css(theme, "dark")
+
+    assert "#ResultsScrollbar .thumb {\n    background-color: #ff79c6;" in css
+
+
 def test_output_is_self_contained_and_carries_warnings():
     css = theme_to_css(make_resolved_theme(), "dark")
 

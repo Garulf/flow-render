@@ -198,6 +198,9 @@ body {
     height: 58px;
     margin: 0 10px 0 10px;
 }
+#ResultsScrollbar .thumb {
+    background-color: #C0C0C0;
+}
 .selecteditem {
     background-color: #F9F9F9;
 }
