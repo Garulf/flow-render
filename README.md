@@ -144,8 +144,9 @@ In the editor:
   exactly one of theme default, gradient, or transparent — a transparent
   canvas shows a gray/white checkerboard in the editor so it reads as
   "transparent," not just "dark." A gradient can be linear (with an angle)
-  or radial, with 2 to 6 color stops (each with its own position);
-  "+ Add color stop" and a per-stop ✕ button (once past 2 stops) manage
+  or radial (with a center X/Y position instead of an angle), with 2 to 6
+  color stops (each with its own position); "+ Add color stop" and a
+  per-stop ✕ button (once past 2 stops) manage
   the list. The canvas's pixel bounds are outlined in the preview. Canvas
   width/height set the actual final screenshot's pixel size (not just the
   live preview, up to 8000px) — saved as a `/* web-render-canvas: WxH */`

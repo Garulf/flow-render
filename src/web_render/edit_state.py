@@ -80,12 +80,14 @@ class GradientStop:
 class GradientState:
     angle: float = 180
     gradient_type: str = "linear"
+    center_x: float = 50
+    center_y: float = 50
     stops: list = field(default_factory=list)
 
     def to_css_value(self) -> str:
         stops = ", ".join(f"{stop.color} {stop.position}%" for stop in self.stops)
         if self.gradient_type == "radial":
-            return f"radial-gradient({stops})"
+            return f"radial-gradient(circle at {self.center_x}% {self.center_y}%, {stops})"
         return f"linear-gradient({self.angle}deg, {stops})"
 
 
@@ -219,6 +221,8 @@ def gradient_from_dict(data: Optional[dict]) -> Optional[GradientState]:
     return GradientState(
         angle=data.get("angle", 180),
         gradient_type=data.get("gradient_type", "linear"),
+        center_x=data.get("center_x", 50),
+        center_y=data.get("center_y", 50),
         stops=[GradientStop(color=stop["color"], position=stop["position"])
                for stop in data.get("stops", [])],
     )

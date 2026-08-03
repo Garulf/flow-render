@@ -84,6 +84,10 @@
         <option value="radial">Radial</option>
       </select>
       <div id="canvas-angle-row"></div>
+      <div id="canvas-position-row" style="display:none">
+        <div id="canvas-center-x-row"></div>
+        <div id="canvas-center-y-row"></div>
+      </div>
       <div id="canvas-stops"></div>
       <button type="button" id="canvas-add-stop-btn">+ Add color stop</button>
     </div>
@@ -692,6 +696,24 @@ const angleRow = createSliderRow(document.getElementById('canvas-angle-row'), {
   onChange: () => applyAndSendCanvasUpdate(),
 });
 
+// Radial gradients have no angle — instead their origin is a center X/Y
+// position, so the angle slider swaps for these two whenever the gradient
+// type is radial (see updateGradientTypeControlsVisibility).
+const centerXRow = createSliderRow(document.getElementById('canvas-center-x-row'), {
+  id: 'canvas-center-x', label: 'Center X (%)', min: 0, max: 100, value: 50, reset: 50,
+  onChange: () => applyAndSendCanvasUpdate(),
+});
+const centerYRow = createSliderRow(document.getElementById('canvas-center-y-row'), {
+  id: 'canvas-center-y', label: 'Center Y (%)', min: 0, max: 100, value: 50, reset: 50,
+  onChange: () => applyAndSendCanvasUpdate(),
+});
+
+function updateGradientTypeControlsVisibility() {
+  const isRadial = document.getElementById('canvas-gradient-type').value === 'radial';
+  document.getElementById('canvas-angle-row').style.display = isRadial ? 'none' : 'block';
+  document.getElementById('canvas-position-row').style.display = isRadial ? 'block' : 'none';
+}
+
 const MAX_GRADIENT_STOPS = 6;
 let canvasStops = [
   { color: '#1a1a2e', position: 0 },
@@ -756,14 +778,19 @@ document.getElementById('canvas-add-stop-btn').addEventListener('click', () => {
   applyAndSendCanvasUpdate();
 });
 
-document.getElementById('canvas-gradient-type').addEventListener('change', applyAndSendCanvasUpdate);
+document.getElementById('canvas-gradient-type').addEventListener('change', () => {
+  updateGradientTypeControlsVisibility();
+  applyAndSendCanvasUpdate();
+});
 
 renderCanvasStops();
 
 function currentCanvasGradientCss() {
   const stopsCss = canvasStops.map((s) => `${s.color} ${s.position}%`).join(', ');
   if (document.getElementById('canvas-gradient-type').value === 'radial') {
-    return `radial-gradient(${stopsCss})`;
+    const centerX = Number(document.getElementById('canvas-center-x-num').value) || 0;
+    const centerY = Number(document.getElementById('canvas-center-y-num').value) || 0;
+    return `radial-gradient(circle at ${centerX}% ${centerY}%, ${stopsCss})`;
   }
   const angle = Number(document.getElementById('canvas-angle-num').value) || 0;
   return `linear-gradient(${angle}deg, ${stopsCss})`;
@@ -800,6 +827,8 @@ const sendCanvasUpdate = debounce(() => {
     canvas: mode === 'gradient' ? {
       angle: Number(document.getElementById('canvas-angle-num').value) || 0,
       gradient_type: document.getElementById('canvas-gradient-type').value,
+      center_x: Number(document.getElementById('canvas-center-x-num').value) || 0,
+      center_y: Number(document.getElementById('canvas-center-y-num').value) || 0,
       stops: canvasStops.map((s) => ({ color: s.color, position: s.position })),
     } : null,
   });
@@ -878,7 +907,10 @@ function syncControlsFromState() {
   updateCanvasControlsVisibility();
   if (currentState.canvas) {
     angleRow.setValue(currentState.canvas.angle);
+    centerXRow.setValue(currentState.canvas.center_x === undefined ? 50 : currentState.canvas.center_x);
+    centerYRow.setValue(currentState.canvas.center_y === undefined ? 50 : currentState.canvas.center_y);
     document.getElementById('canvas-gradient-type').value = currentState.canvas.gradient_type || 'linear';
+    updateGradientTypeControlsVisibility();
     const stops = currentState.canvas.stops || [];
     if (stops.length) {
       canvasStops = stops.map((s) => ({ color: s.color, position: s.position }));

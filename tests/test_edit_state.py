@@ -228,7 +228,16 @@ def test_gradient_to_css_value_supports_radial():
         GradientStop(color="#ffffff", position=100),
     ])
 
-    assert gradient.to_css_value() == "radial-gradient(#000000 0%, #ffffff 100%)"
+    assert gradient.to_css_value() == "radial-gradient(circle at 50% 50%, #000000 0%, #ffffff 100%)"
+
+
+def test_gradient_to_css_value_supports_radial_center_position():
+    gradient = GradientState(gradient_type="radial", center_x=20, center_y=80, stops=[
+        GradientStop(color="#000000", position=0),
+        GradientStop(color="#ffffff", position=100),
+    ])
+
+    assert gradient.to_css_value() == "radial-gradient(circle at 20% 80%, #000000 0%, #ffffff 100%)"
 
 
 def test_gradient_to_css_value_supports_more_than_two_stops():
