@@ -120,6 +120,12 @@ In the editor:
 - "3D perspective" adds a `perspective(2000px)` to that element's transform,
   so rotateX/rotateY actually read as a 3D tilt instead of a flat mirror —
   needed for the tilted-window look the `ad-*.css` hero themes use.
+- Transforming anything other than the window itself (an icon, a title, etc.)
+  lets it visually extend past the window's edges — e.g. a large translateZ
+  or scale can make an icon "float" off the window — instead of being
+  clipped to the window's bounds.
+- "Selected result" picks which row is highlighted, for previewing the
+  selected-row styling on any of the plugin's actual results.
 - The canvas (behind the window) is edited globally, not per element: choose
   exactly one of theme default, gradient (angle + two color stops), or
   transparent — a transparent canvas shows a gray/white checkerboard in the
@@ -137,6 +143,9 @@ In the editor:
   automatically.
 - "Save" writes `src/web_render/static/<name>.css`, ready to use immediately
   with `-s <name>.css` on the normal (non-edit) command.
+- "📷 Capture screenshot" runs the real screenshot pipeline against whatever
+  you're currently editing (saved or not) and writes it to the normal
+  per-user output directory — no need to save first or leave the editor.
 
 ## Config format
 
