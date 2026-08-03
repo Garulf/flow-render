@@ -17,6 +17,14 @@ TRANSFORM_PRESERVE_PREFIX = {
 }
 
 
+def _hex_to_rgba(hex_color: str, opacity: float) -> str:
+    value = hex_color.lstrip("#")
+    if len(value) == 3:
+        value = "".join(ch * 2 for ch in value)
+    r, g, b = (int(value[i:i + 2], 16) for i in (0, 2, 4))
+    return f"rgba({r}, {g}, {b}, {opacity})"
+
+
 @dataclass
 class Transform:
     translate_x: float = 0
@@ -27,13 +35,19 @@ class Transform:
     rotate_z: float = 0
     scale: float = 1
     perspective: float = 0
+    opacity: float = 1
+    shadow_x: float = 0
+    shadow_y: float = 0
+    shadow_blur: float = 0
+    shadow_color: str = "#000000"
+    shadow_opacity: float = 0
 
     def is_default(self) -> bool:
         return not any([
             self.translate_x, self.translate_y, self.translate_z,
             self.rotate_x, self.rotate_y, self.rotate_z,
-            self.perspective,
-        ]) and self.scale == 1
+            self.perspective, self.shadow_opacity,
+        ]) and self.scale == 1 and self.opacity == 1
 
     def to_css_value(self, preserve_prefix: str = "") -> str:
         perspective_prefix = f"perspective({self.perspective}px) " if self.perspective else ""
@@ -43,6 +57,17 @@ class Transform:
             f"rotateX({self.rotate_x}deg) rotateY({self.rotate_y}deg) rotateZ({self.rotate_z}deg) "
             f"scale({self.scale})"
         )
+
+    def extra_declarations(self) -> list:
+        """CSS declarations beyond `transform:` — kept separate since opacity and
+        filter are their own properties, not part of the transform value."""
+        lines = []
+        if self.opacity != 1:
+            lines.append(f"opacity: {self.opacity};")
+        if self.shadow_opacity:
+            color = _hex_to_rgba(self.shadow_color, self.shadow_opacity)
+            lines.append(f"filter: drop-shadow({self.shadow_x}px {self.shadow_y}px {self.shadow_blur}px {color});")
+        return lines
 
 
 @dataclass
@@ -54,10 +79,13 @@ class GradientStop:
 @dataclass
 class GradientState:
     angle: float = 180
+    gradient_type: str = "linear"
     stops: list = field(default_factory=list)
 
     def to_css_value(self) -> str:
         stops = ", ".join(f"{stop.color} {stop.position}%" for stop in self.stops)
+        if self.gradient_type == "radial":
+            return f"radial-gradient({stops})"
         return f"linear-gradient({self.angle}deg, {stops})"
 
 
@@ -67,7 +95,9 @@ class TextLayer:
     template: str = ""
     transform: Transform = field(default_factory=Transform)
     font_size: int = 32
+    font_family: str = "inherit"
     color: str = "#ffffff"
+    color_opacity: float = 1
     weight: str = "normal"
 
 
@@ -119,6 +149,8 @@ def edit_state_to_css(state: EditState) -> str:
         preserve_prefix = TRANSFORM_PRESERVE_PREFIX.get(selector, "")
         lines.append(f"{selector} {{")
         lines.append(f"    transform: {transform.to_css_value(preserve_prefix)};")
+        for declaration in transform.extra_declarations():
+            lines.append(f"    {declaration}")
         lines.append("}")
 
     for slot_index, layer in enumerate(state.layers):
@@ -129,12 +161,17 @@ def edit_state_to_css(state: EditState) -> str:
         lines.append("    display: block;")
         if not layer.transform.is_default():
             lines.append(f"    transform: {layer.transform.to_css_value()};")
-        # font-size/color/font-weight live on the host element (not ::before)
-        # so they're inherited by the pseudo-element's text content — this
-        # lets a JS client restyle them by setting the host's inline style,
-        # with no need to re-render the page for a font/color tweak.
+            for declaration in layer.transform.extra_declarations():
+                lines.append(f"    {declaration}")
+        # font-size/family/color/font-weight live on the host element (not
+        # ::before) so they're inherited by the pseudo-element's text content —
+        # this lets a JS client restyle them by setting the host's inline
+        # style, with no need to re-render the page for a font/color tweak.
         lines.append(f"    font-size: {layer.font_size}px;")
-        lines.append(f"    color: {layer.color};")
+        lines.append(f"    font-family: {layer.font_family};")
+        color = (_hex_to_rgba(layer.color, layer.color_opacity)
+                if layer.color_opacity != 1 else layer.color)
+        lines.append(f"    color: {color};")
         lines.append(f"    font-weight: {layer.weight};")
         lines.append("}")
         lines.append(f"{selector}::before {{")
@@ -167,6 +204,12 @@ def transform_from_dict(data: dict) -> Transform:
         rotate_z=data.get("rotate_z", 0),
         scale=data.get("scale", 1),
         perspective=data.get("perspective", 0),
+        opacity=data.get("opacity", 1),
+        shadow_x=data.get("shadow_x", 0),
+        shadow_y=data.get("shadow_y", 0),
+        shadow_blur=data.get("shadow_blur", 0),
+        shadow_color=data.get("shadow_color", "#000000"),
+        shadow_opacity=data.get("shadow_opacity", 0),
     )
 
 
@@ -175,6 +218,7 @@ def gradient_from_dict(data: Optional[dict]) -> Optional[GradientState]:
         return None
     return GradientState(
         angle=data.get("angle", 180),
+        gradient_type=data.get("gradient_type", "linear"),
         stops=[GradientStop(color=stop["color"], position=stop["position"])
                for stop in data.get("stops", [])],
     )
@@ -186,7 +230,9 @@ def text_layer_from_dict(data: dict) -> TextLayer:
         template=data.get("template", ""),
         transform=transform_from_dict(data.get("transform", {})),
         font_size=data.get("font_size", 32),
+        font_family=data.get("font_family", "inherit"),
         color=data.get("color", "#ffffff"),
+        color_opacity=data.get("color_opacity", 1),
         weight=data.get("weight", "normal"),
     )
 

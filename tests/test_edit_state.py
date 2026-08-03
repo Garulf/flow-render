@@ -139,6 +139,108 @@ def test_edit_state_to_css_emits_non_default_scale():
     assert "scale(1.3)" in css
 
 
+def test_transform_is_not_default_when_opacity_is_not_one():
+    assert not Transform(opacity=0.5).is_default()
+
+
+def test_transform_is_not_default_when_shadow_opacity_is_nonzero():
+    assert not Transform(shadow_opacity=0.5).is_default()
+
+
+def test_transform_extra_declarations_empty_by_default():
+    assert Transform().extra_declarations() == []
+
+
+def test_transform_extra_declarations_includes_opacity_when_not_one():
+    assert Transform(opacity=0.5).extra_declarations() == ["opacity: 0.5;"]
+
+
+def test_transform_extra_declarations_includes_drop_shadow_when_shadow_opacity_set():
+    transform = Transform(shadow_x=4, shadow_y=8, shadow_blur=12,
+                          shadow_color="#ff0000", shadow_opacity=0.6)
+
+    declarations = transform.extra_declarations()
+
+    assert declarations == ["filter: drop-shadow(4px 8px 12px rgba(255, 0, 0, 0.6));"]
+
+
+def test_edit_state_to_css_emits_opacity_and_shadow_for_an_element():
+    state = EditState(elements={
+        ".icon": Transform(opacity=0.7, shadow_x=2, shadow_y=2, shadow_blur=4,
+                           shadow_color="#000000", shadow_opacity=0.5),
+    })
+
+    css = edit_state_to_css(state)
+
+    assert "opacity: 0.7;" in css
+    assert "filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.5));" in css
+
+
+def test_edit_state_to_css_emits_shadow_for_a_layer():
+    state = EditState(layers=[
+        TextLayer(active=True, template="hi",
+                 transform=Transform(shadow_x=1, shadow_y=1, shadow_blur=2,
+                                     shadow_color="#333333", shadow_opacity=0.8)),
+        TextLayer(), TextLayer(), TextLayer(),
+    ])
+
+    css = edit_state_to_css(state)
+
+    assert "filter: drop-shadow(1px 1px 2px rgba(51, 51, 51, 0.8));" in css
+
+
+def test_edit_state_to_css_emits_layer_font_family():
+    state = EditState(layers=[
+        TextLayer(active=True, template="hi", font_family="Georgia, serif"),
+        TextLayer(), TextLayer(), TextLayer(),
+    ])
+
+    css = edit_state_to_css(state)
+
+    assert "font-family: Georgia, serif;" in css
+
+
+def test_edit_state_to_css_emits_layer_color_with_alpha_when_not_opaque():
+    state = EditState(layers=[
+        TextLayer(active=True, template="hi", color="#ff0000", color_opacity=0.4),
+        TextLayer(), TextLayer(), TextLayer(),
+    ])
+
+    css = edit_state_to_css(state)
+
+    assert "color: rgba(255, 0, 0, 0.4);" in css
+
+
+def test_edit_state_to_css_emits_plain_layer_color_when_fully_opaque():
+    state = EditState(layers=[
+        TextLayer(active=True, template="hi", color="#ff0000", color_opacity=1),
+        TextLayer(), TextLayer(), TextLayer(),
+    ])
+
+    css = edit_state_to_css(state)
+
+    assert "color: #ff0000;" in css
+
+
+def test_gradient_to_css_value_supports_radial():
+    gradient = GradientState(gradient_type="radial", stops=[
+        GradientStop(color="#000000", position=0),
+        GradientStop(color="#ffffff", position=100),
+    ])
+
+    assert gradient.to_css_value() == "radial-gradient(#000000 0%, #ffffff 100%)"
+
+
+def test_gradient_to_css_value_supports_more_than_two_stops():
+    gradient = GradientState(angle=90, stops=[
+        GradientStop(color="#000000", position=0),
+        GradientStop(color="#ff0000", position=50),
+        GradientStop(color="#ffffff", position=100),
+    ])
+
+    assert gradient.to_css_value() == "linear-gradient(90deg, #000000 0%, #ff0000 50%, #ffffff 100%)"
+
+
 def test_edit_state_to_css_unclips_window_when_an_inner_element_is_transformed():
     state = EditState(elements={".icon": Transform(translate_z=100)})
 

@@ -118,12 +118,15 @@ of `-W`/`-H`).
 
 In the editor:
 - Click any element in the preview (the window, icon, a result's title, etc.)
-  to select it, then adjust its translate X/Y/Z, rotate X/Y/Z, scale, and
-  perspective with the sliders — each has a live-editable number box and a
-  reset (↺) button. Because these are shared CSS selectors, editing e.g.
-  "Title" affects every result row, not just one. `.icon`, `#GlassIcon`, and
-  `.Hotkey` keep their own built-in vertical centering underneath whatever
-  you add on top.
+  to select it, then adjust its translate X/Y/Z, rotate X/Y/Z, scale,
+  opacity, perspective, and drop shadow (offset X/Y, blur, color, opacity)
+  with the sliders — each has a live-editable number box and a reset (↺)
+  button, with wide ranges (e.g. translate up to ±2000px, rotate up to
+  ±360°, scale up to 5x) to cover everything from subtle nudges to
+  dramatic hero-shot compositions. Because these are shared CSS selectors,
+  editing e.g. "Title" affects every result row, not just one. `.icon`,
+  `#GlassIcon`, and `.Hotkey` keep their own built-in vertical centering
+  underneath whatever you add on top.
 - "Perspective" (0 = off) is what actually gives translateZ/rotateX/rotateY
   real 3D depth — without it, Z movement has no visible foreshortening.
   Raise it for a stronger "pop toward the viewer" effect, needed for the
@@ -138,20 +141,25 @@ In the editor:
   transforming whichever row that is — e.g. scaling it up slightly as
   emphasis — independently of "Result row", which affects every row.
 - The canvas (behind the window) is edited globally, not per element: choose
-  exactly one of theme default, gradient (angle + two color stops), or
-  transparent — a transparent canvas shows a gray/white checkerboard in the
-  editor so it reads as "transparent," not just "dark." Its pixel bounds are
-  outlined in the preview. Canvas width/height set the actual final
-  screenshot's pixel size (not just the live preview) — saved as a
-  `/* web-render-canvas: WxH */` marker at the top of the theme, which the
-  normal (non-edit) command reads automatically when that theme is
-  selected with `-s`. `-W`/`-H` on the command line override it.
+  exactly one of theme default, gradient, or transparent — a transparent
+  canvas shows a gray/white checkerboard in the editor so it reads as
+  "transparent," not just "dark." A gradient can be linear (with an angle)
+  or radial, with 2 to 6 color stops (each with its own position);
+  "+ Add color stop" and a per-stop ✕ button (once past 2 stops) manage
+  the list. The canvas's pixel bounds are outlined in the preview. Canvas
+  width/height set the actual final screenshot's pixel size (not just the
+  live preview, up to 8000px) — saved as a `/* web-render-canvas: WxH */`
+  marker at the top of the theme, which the normal (non-edit) command reads
+  automatically when that theme is selected with `-s`. `-W`/`-H` on the
+  command line override it.
 - "+ Add layer" adds a freeform text layer (up to 4), each a sibling of the
   window rather than nested inside it, so it doesn't inherit the window's
-  own rotation — with its own Jinja2 template (e.g. `{{ plugin.Name }}`)
-  plus translate/rotate/font controls. The template stays live in the saved
-  CSS: reusing the theme against a different plugin later updates the text
-  automatically.
+  own rotation — with its own Jinja2 template (e.g. `{{ plugin.Name }}`),
+  a choice of font family (several web-safe options, or the theme's
+  default), font size, color with its own opacity slider, weight, plus the
+  same translate/rotate/scale/opacity/shadow controls as elements. The
+  template stays live in the saved CSS: reusing the theme against a
+  different plugin later updates the text automatically.
 - "Save" writes `src/web_render/static/<name>.css`, ready to use immediately
   with `-s <name>.css` on the normal (non-edit) command.
 - "📷 Capture screenshot" runs the real screenshot pipeline against whatever

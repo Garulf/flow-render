@@ -68,8 +68,8 @@
   <div id="panel">
     <h2>Canvas</h2>
     <div class="size-row">
-      <label style="margin:0">Width <input type="number" id="canvas-width" min="200" max="4000" value="1280"></label>
-      <label style="margin:0">Height <input type="number" id="canvas-height" min="200" max="4000" value="720"></label>
+      <label style="margin:0">Width <input type="number" id="canvas-width" min="200" max="8000" value="1280"></label>
+      <label style="margin:0">Height <input type="number" id="canvas-height" min="200" max="8000" value="720"></label>
     </div>
 
     <div id="canvas-mode-group">
@@ -78,11 +78,14 @@
       <label class="checkbox-label"><input type="radio" name="canvas-mode" id="canvas-mode-transparent" value="transparent"> Transparent</label>
     </div>
     <div id="canvas-gradient-controls">
+      <label>Gradient type</label>
+      <select id="canvas-gradient-type">
+        <option value="linear">Linear</option>
+        <option value="radial">Radial</option>
+      </select>
       <div id="canvas-angle-row"></div>
-      <label>Stop 1</label>
-      <input type="color" id="canvas-stop-0" value="#1a1a2e">
-      <label>Stop 2</label>
-      <input type="color" id="canvas-stop-1" value="#16213e">
+      <div id="canvas-stops"></div>
+      <button type="button" id="canvas-add-stop-btn">+ Add color stop</button>
     </div>
 
     <h2>Selected result</h2>
@@ -103,9 +106,25 @@
       <label>Jinja2 template</label>
       <textarea id="layer-template" rows="2">{{ plugin.Name }}</textarea>
       <label>Font size (px)</label>
-      <input type="range" id="layer-font-size" min="8" max="120" value="32">
+      <input type="range" id="layer-font-size" min="8" max="300" value="32">
+      <label>Font family</label>
+      <select id="layer-font-family">
+        <option value="inherit">Theme default</option>
+        <option value="Arial, sans-serif">Arial</option>
+        <option value="'Segoe UI', sans-serif">Segoe UI</option>
+        <option value="'Helvetica Neue', sans-serif">Helvetica Neue</option>
+        <option value="Georgia, serif">Georgia</option>
+        <option value="'Times New Roman', serif">Times New Roman</option>
+        <option value="'Courier New', monospace">Courier New</option>
+        <option value="'Trebuchet MS', sans-serif">Trebuchet MS</option>
+        <option value="Verdana, sans-serif">Verdana</option>
+        <option value="'Comic Sans MS', cursive">Comic Sans MS</option>
+        <option value="Impact, sans-serif">Impact</option>
+      </select>
       <label>Color</label>
       <input type="color" id="layer-color" value="#ffffff">
+      <label>Color opacity</label>
+      <input type="range" id="layer-color-opacity" min="0" max="1" step="0.01" value="1">
       <label>Weight</label>
       <select id="layer-weight">
         <option value="normal">Normal</option>
@@ -141,18 +160,29 @@ const SELECTABLE = [
 ];
 const LAYER_SLOTS = 4;
 const AXES = [
-  { key: 'translate_x', label: 'Translate X (px)', min: -400, max: 400, step: 1, reset: 0 },
-  { key: 'translate_y', label: 'Translate Y (px)', min: -400, max: 400, step: 1, reset: 0 },
-  { key: 'translate_z', label: 'Translate Z (px)', min: -1000, max: 1000, step: 5, reset: 0 },
-  { key: 'rotate_x', label: 'Rotate X (deg)', min: -180, max: 180, step: 1, reset: 0 },
-  { key: 'rotate_y', label: 'Rotate Y (deg)', min: -180, max: 180, step: 1, reset: 0 },
-  { key: 'rotate_z', label: 'Rotate Z (deg)', min: -180, max: 180, step: 1, reset: 0 },
-  { key: 'scale', label: 'Scale', min: 0.1, max: 3, step: 0.05, reset: 1 },
-  { key: 'perspective', label: 'Perspective (px, 0 = off)', min: 0, max: 3000, step: 50, reset: 0 },
+  { key: 'translate_x', label: 'Translate X (px)', min: -2000, max: 2000, step: 1, reset: 0 },
+  { key: 'translate_y', label: 'Translate Y (px)', min: -2000, max: 2000, step: 1, reset: 0 },
+  { key: 'translate_z', label: 'Translate Z (px)', min: -3000, max: 3000, step: 5, reset: 0 },
+  { key: 'rotate_x', label: 'Rotate X (deg)', min: -360, max: 360, step: 1, reset: 0 },
+  { key: 'rotate_y', label: 'Rotate Y (deg)', min: -360, max: 360, step: 1, reset: 0 },
+  { key: 'rotate_z', label: 'Rotate Z (deg)', min: -360, max: 360, step: 1, reset: 0 },
+  { key: 'scale', label: 'Scale', min: 0.05, max: 5, step: 0.05, reset: 1 },
+  { key: 'perspective', label: 'Perspective (px, 0 = off)', min: 0, max: 6000, step: 50, reset: 0 },
+  { key: 'opacity', label: 'Opacity', min: 0, max: 1, step: 0.01, reset: 1 },
+];
+// Numeric shadow sliders — shadow_color is a separate <input type=color>, added
+// alongside these in createTransformControls since it doesn't fit the pure-numeric
+// slider pattern the rest of AXES/SHADOW_AXES share.
+const SHADOW_AXES = [
+  { key: 'shadow_x', label: 'Shadow X (px)', min: -100, max: 100, step: 1, reset: 0 },
+  { key: 'shadow_y', label: 'Shadow Y (px)', min: -100, max: 100, step: 1, reset: 0 },
+  { key: 'shadow_blur', label: 'Shadow blur (px)', min: 0, max: 100, step: 1, reset: 0 },
+  { key: 'shadow_opacity', label: 'Shadow opacity', min: 0, max: 1, step: 0.01, reset: 0 },
 ];
 const DEFAULT_TRANSFORM = {
   translate_x: 0, translate_y: 0, translate_z: 0,
-  rotate_x: 0, rotate_y: 0, rotate_z: 0, scale: 1, perspective: 0,
+  rotate_x: 0, rotate_y: 0, rotate_z: 0, scale: 1, perspective: 0, opacity: 1,
+  shadow_x: 0, shadow_y: 0, shadow_blur: 0, shadow_color: '#000000', shadow_opacity: 0,
 };
 // These selectors center themselves with `transform: translateY(-50%)` in every
 // bundled theme — must match src/web_render/edit_state.py's TRANSFORM_PRESERVE_PREFIX,
@@ -226,6 +256,28 @@ function transformToCss(t, preservePrefix = '') {
     + `rotateX(${t.rotate_x}deg) rotateY(${t.rotate_y}deg) rotateZ(${t.rotate_z}deg) scale(${t.scale})`;
 }
 
+function hexToRgba(hex, opacity) {
+  let value = (hex || '#000000').replace('#', '');
+  if (value.length === 3) value = value.split('').map((c) => c + c).join('');
+  const r = parseInt(value.substring(0, 2), 16);
+  const g = parseInt(value.substring(2, 4), 16);
+  const b = parseInt(value.substring(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+}
+
+// opacity/filter are separate CSS properties, not part of `transform:` — mirrors
+// Transform.extra_declarations() in edit_state.py so the live iframe matches what
+// a full reload of the server-rendered CSS would show.
+function transformExtraStyles(t) {
+  const styles = { opacity: '', filter: '' };
+  if (t.opacity !== undefined && t.opacity !== 1) styles.opacity = String(t.opacity);
+  if (t.shadow_opacity) {
+    const color = hexToRgba(t.shadow_color, t.shadow_opacity);
+    styles.filter = `drop-shadow(${t.shadow_x || 0}px ${t.shadow_y || 0}px ${t.shadow_blur || 0}px ${color})`;
+  }
+  return styles;
+}
+
 // A single slider + live number box + reset button, wired to call onChange(value) on any interaction.
 // `reset` is the value the reset button restores (0 for translate/rotate, 1 for scale).
 function createSliderRow(container, { id, label, min, max, step = 1, value = 0, reset: resetValue = 0, onChange }) {
@@ -268,11 +320,33 @@ function createTransformControls(container, prefix, onChange) {
     });
   });
 
+  const shadowColorLabel = document.createElement('label');
+  shadowColorLabel.textContent = 'Shadow color';
+  container.appendChild(shadowColorLabel);
+  const shadowColor = document.createElement('input');
+  shadowColor.type = 'color';
+  shadowColor.id = `${prefix}-shadow_color`;
+  shadowColor.value = values.shadow_color;
+  shadowColor.addEventListener('input', () => {
+    values.shadow_color = shadowColor.value;
+    onChange({ ...values });
+  });
+  container.appendChild(shadowColor);
+
+  SHADOW_AXES.forEach(({ key, label, min, max, step, reset }) => {
+    rows[key] = createSliderRow(container, {
+      id: `${prefix}-${key}`, label, min, max, step, reset, value: values[key],
+      onChange: (v) => { values[key] = v; onChange({ ...values }); },
+    });
+  });
+
   return {
     setValues(transform) {
       const t = { ...DEFAULT_TRANSFORM, ...(transform || {}) };
       Object.assign(values, t);
       AXES.forEach(({ key }) => rows[key].setValue(t[key]));
+      SHADOW_AXES.forEach(({ key }) => rows[key].setValue(t[key]));
+      shadowColor.value = t.shadow_color;
     },
   };
 }
@@ -427,13 +501,18 @@ function applyTransformToFrame(selector, values) {
   const doc = frame.contentDocument;
   if (!doc) return;
   const css = transformToCss(values, TRANSFORM_PRESERVE_PREFIX[selector] || '');
-  doc.querySelectorAll(selector).forEach((el) => { el.style.transform = css; });
+  const extra = transformExtraStyles(values);
+  doc.querySelectorAll(selector).forEach((el) => {
+    el.style.transform = css;
+    el.style.opacity = extra.opacity;
+    el.style.filter = extra.filter;
+  });
 }
 
 function isDefaultTransformValues(t) {
   return t.translate_x === 0 && t.translate_y === 0 && t.translate_z === 0
     && t.rotate_x === 0 && t.rotate_y === 0 && t.rotate_z === 0
-    && t.scale === 1 && !t.perspective;
+    && t.scale === 1 && !t.perspective && t.opacity === 1 && !t.shadow_opacity;
 }
 
 // Mirrors edit_state.py's server-side rule (only baked into the rendered CSS on a
@@ -504,7 +583,9 @@ function currentLayerPayload() {
     active: true,
     template: document.getElementById('layer-template').value,
     font_size: Number(document.getElementById('layer-font-size').value),
+    font_family: document.getElementById('layer-font-family').value,
     color: document.getElementById('layer-color').value,
+    color_opacity: Number(document.getElementById('layer-color-opacity').value),
     weight: document.getElementById('layer-weight').value,
     transform: currentLayerTransformValues(),
   };
@@ -518,6 +599,11 @@ function currentLayerTransformValues() {
     const raw = document.getElementById(`layer-${key}-num`).value;
     values[key] = raw === '' ? reset : Number(raw);
   });
+  SHADOW_AXES.forEach(({ key, reset }) => {
+    const raw = document.getElementById(`layer-${key}-num`).value;
+    values[key] = raw === '' ? reset : Number(raw);
+  });
+  values.shadow_color = document.getElementById('layer-shadow_color').value;
   return values;
 }
 
@@ -528,9 +614,13 @@ function applyLayerStyleToFrame(index, layer) {
   if (!el) return;
   el.style.display = 'block';
   el.style.fontSize = `${layer.font_size}px`;
-  el.style.color = layer.color;
+  el.style.fontFamily = layer.font_family;
+  el.style.color = layer.color_opacity !== 1 ? hexToRgba(layer.color, layer.color_opacity) : layer.color;
   el.style.fontWeight = layer.weight;
   el.style.transform = transformToCss(layer.transform);
+  const extra = transformExtraStyles(layer.transform);
+  el.style.opacity = extra.opacity;
+  el.style.filter = extra.filter;
 }
 
 const sendLayerUpdate = debounceByKey((slot, layer) => {
@@ -550,7 +640,7 @@ document.getElementById('layer-template').addEventListener('input', () => {
   sendLayerTemplateUpdate(selectedLayer, currentLayerPayload());
 });
 
-['layer-font-size', 'layer-color', 'layer-weight'].forEach((id) => {
+['layer-font-size', 'layer-font-family', 'layer-color', 'layer-color-opacity', 'layer-weight'].forEach((id) => {
   const apply = () => {
     if (selectedLayer === null) return;
     const slot = selectedLayer;
@@ -570,7 +660,9 @@ function selectLayer(index) {
   const layer = currentState.layers[index];
   document.getElementById('layer-template').value = layer.template;
   document.getElementById('layer-font-size').value = layer.font_size;
+  document.getElementById('layer-font-family').value = layer.font_family || 'inherit';
   document.getElementById('layer-color').value = layer.color;
+  document.getElementById('layer-color-opacity').value = layer.color_opacity === undefined ? 1 : layer.color_opacity;
   document.getElementById('layer-weight').value = layer.weight;
   layerControls.setValues(layer.transform);
   renderLayerTabs();
@@ -585,7 +677,8 @@ document.getElementById('add-layer-btn').addEventListener('click', async () => {
     type: 'layer',
     slot,
     layer: {
-      active: true, template: '{{ plugin.Name }}', font_size: 32, color: '#ffffff', weight: 'normal',
+      active: true, template: '{{ plugin.Name }}', font_size: 32, font_family: 'inherit',
+      color: '#ffffff', color_opacity: 1, weight: 'normal',
       transform: { ...DEFAULT_TRANSFORM },
     },
   });
@@ -599,11 +692,81 @@ const angleRow = createSliderRow(document.getElementById('canvas-angle-row'), {
   onChange: () => applyAndSendCanvasUpdate(),
 });
 
+const MAX_GRADIENT_STOPS = 6;
+let canvasStops = [
+  { color: '#1a1a2e', position: 0 },
+  { color: '#16213e', position: 100 },
+];
+
+// Stops are rendered dynamically (2-6 of them) rather than a fixed pair of
+// <input type=color> elements, so gradients aren't locked to exactly two colors.
+function renderCanvasStops() {
+  const container = document.getElementById('canvas-stops');
+  container.innerHTML = '';
+  canvasStops.forEach((stop, index) => {
+    const row = document.createElement('div');
+    row.className = 'slider-row';
+    const label = document.createElement('label');
+    label.textContent = `Stop ${index + 1}`;
+    const controls = document.createElement('div');
+    controls.className = 'slider-controls';
+
+    const color = document.createElement('input');
+    color.type = 'color';
+    color.value = stop.color;
+    color.addEventListener('input', () => {
+      canvasStops[index].color = color.value;
+      applyAndSendCanvasUpdate();
+    });
+
+    const position = document.createElement('input');
+    position.type = 'number';
+    position.min = 0; position.max = 100;
+    position.value = stop.position;
+    position.addEventListener('input', () => {
+      canvasStops[index].position = Number(position.value) || 0;
+      applyAndSendCanvasUpdate();
+    });
+
+    controls.append(color, position);
+    if (canvasStops.length > 2) {
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.textContent = '✕';
+      removeBtn.title = 'Remove stop';
+      removeBtn.className = 'reset-btn';
+      removeBtn.addEventListener('click', () => {
+        canvasStops.splice(index, 1);
+        renderCanvasStops();
+        applyAndSendCanvasUpdate();
+      });
+      controls.append(removeBtn);
+    }
+    row.append(label, controls);
+    container.appendChild(row);
+  });
+  document.getElementById('canvas-add-stop-btn').disabled = canvasStops.length >= MAX_GRADIENT_STOPS;
+}
+
+document.getElementById('canvas-add-stop-btn').addEventListener('click', () => {
+  if (canvasStops.length >= MAX_GRADIENT_STOPS) return;
+  const last = canvasStops[canvasStops.length - 1];
+  canvasStops.push({ color: '#ffffff', position: Math.min(100, last.position + 10) });
+  renderCanvasStops();
+  applyAndSendCanvasUpdate();
+});
+
+document.getElementById('canvas-gradient-type').addEventListener('change', applyAndSendCanvasUpdate);
+
+renderCanvasStops();
+
 function currentCanvasGradientCss() {
+  const stopsCss = canvasStops.map((s) => `${s.color} ${s.position}%`).join(', ');
+  if (document.getElementById('canvas-gradient-type').value === 'radial') {
+    return `radial-gradient(${stopsCss})`;
+  }
   const angle = Number(document.getElementById('canvas-angle-num').value) || 0;
-  const stop0 = document.getElementById('canvas-stop-0').value;
-  const stop1 = document.getElementById('canvas-stop-1').value;
-  return `linear-gradient(${angle}deg, ${stop0} 0%, ${stop1} 100%)`;
+  return `linear-gradient(${angle}deg, ${stopsCss})`;
 }
 
 function currentCanvasMode() {
@@ -636,10 +799,8 @@ const sendCanvasUpdate = debounce(() => {
     transparent: mode === 'transparent',
     canvas: mode === 'gradient' ? {
       angle: Number(document.getElementById('canvas-angle-num').value) || 0,
-      stops: [
-        { color: document.getElementById('canvas-stop-0').value, position: 0 },
-        { color: document.getElementById('canvas-stop-1').value, position: 100 },
-      ],
+      gradient_type: document.getElementById('canvas-gradient-type').value,
+      stops: canvasStops.map((s) => ({ color: s.color, position: s.position })),
     } : null,
   });
 }, 150);
@@ -655,10 +816,6 @@ document.querySelectorAll('input[name="canvas-mode"]').forEach((radio) => {
     applyAndSendCanvasUpdate();
   });
 });
-['canvas-stop-0', 'canvas-stop-1'].forEach((id) => {
-  document.getElementById(id).addEventListener('input', applyAndSendCanvasUpdate);
-});
-
 const sendCanvasSizeUpdate = debounce(() => {
   currentState.canvas_width = Number(document.getElementById('canvas-width').value) || 1280;
   currentState.canvas_height = Number(document.getElementById('canvas-height').value) || 720;
@@ -721,9 +878,12 @@ function syncControlsFromState() {
   updateCanvasControlsVisibility();
   if (currentState.canvas) {
     angleRow.setValue(currentState.canvas.angle);
+    document.getElementById('canvas-gradient-type').value = currentState.canvas.gradient_type || 'linear';
     const stops = currentState.canvas.stops || [];
-    if (stops[0]) document.getElementById('canvas-stop-0').value = stops[0].color;
-    if (stops[1]) document.getElementById('canvas-stop-1').value = stops[1].color;
+    if (stops.length) {
+      canvasStops = stops.map((s) => ({ color: s.color, position: s.position }));
+      renderCanvasStops();
+    }
   }
   document.getElementById('canvas-width').value = currentState.canvas_width;
   document.getElementById('canvas-height').value = currentState.canvas_height;
