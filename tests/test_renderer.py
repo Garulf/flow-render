@@ -87,8 +87,11 @@ def test_render_truncates_results_to_max_results(tmp_path, monkeypatch):
     render_from_config(make_config(5, max_results=3), str(output))
 
     html = output.read_text()
-    assert "r0" in html and "r1" in html and "r2" in html
-    assert "r3" not in html and "r4" not in html
+    assert '<div class="Title">r0</div>' in html
+    assert '<div class="Title">r1</div>' in html
+    assert '<div class="Title">r2</div>' in html
+    assert '<div class="Title">r3</div>' not in html
+    assert '<div class="Title">r4</div>' not in html
 
 
 def test_render_exposes_plugin_fields_to_css_files(tmp_path, monkeypatch):

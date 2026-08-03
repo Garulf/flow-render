@@ -75,3 +75,37 @@ def test_win11_hotkey_pill_hugs_its_text(page):
         render_page(page, skin)
         width = page.eval_on_selector(".selecteditem .Hotkey", "el => el.getBoundingClientRect().width")
         assert width < 45, f"{skin}: hotkey pill is {width}px wide; reference is ~31px"
+
+
+def test_layer_slots_are_hidden_by_default(page):
+    render_page(page, None)
+
+    for i in range(1, 5):
+        assert computed(page, f"#Layer{i}", "display") == "none"
+
+
+def test_window_border_is_a_positioning_context(page):
+    render_page(page, None)
+
+    assert computed(page, "#WindowBorder", "position") == "relative"
+
+
+def test_layer_activated_by_saved_theme_shows_plugin_driven_text(page, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "promo.css").write_text(
+        "#Layer1 { display: block; transform: translate3d(10px, 0px, 0px); }\n"
+        "#Layer1::before { content: \"{{ plugin.Name }}\"; }\n"
+    )
+    config = Config(
+        keyword="pm",
+        query="steam",
+        icon="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+        plugin={"Name": "Steam Search"},
+        css="promo.css",
+        results=[{"title": "Steam", "subtitle": "sub", "icon": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="}],
+    )
+    page.set_content(render(config))
+
+    assert computed(page, "#Layer1", "display") == "block"
+    content = page.eval_on_selector("#Layer1", "el => getComputedStyle(el, '::before').content")
+    assert content == '"Steam Search"'

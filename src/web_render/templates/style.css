@@ -11,6 +11,7 @@ body {
 }
 
 #WindowBorder {
+    position: relative;
     margin: auto;
     overflow: hidden;
     border-radius:5px;
@@ -99,6 +100,11 @@ body {
     height: 40%;
     border-radius: 2px;
     background-color: rgba(128, 128, 128, 0.45);
+}
+
+#Layer1, #Layer2, #Layer3, #Layer4 {
+    display: none;
+    position: absolute;
 }
 
 .item {
