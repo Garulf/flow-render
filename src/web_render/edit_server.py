@@ -20,7 +20,7 @@ class EditSession:
 
     def render_preview(self) -> str:
         self._preview_path.write_text(edit_state_to_css(self.state))
-        self.config.css = [*self.state.base_css_files, self._preview_path.name]
+        self.config.css = [self._preview_path.name]
         return render(self.config)
 
     def cleanup(self) -> None:

@@ -105,6 +105,24 @@ def test_save_writes_css_file_with_live_jinja_template(server, tmp_path):
     assert "{{ plugin.Name }}" in saved_path.read_text()
 
 
+def test_preview_does_not_duplicate_base_css_files(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(edit_server, "STATIC_DIR", tmp_path / "static")
+    (tmp_path / "static").mkdir()
+    srv = edit_server.build_server(make_test_config(), base_css_files=["hero.css"])
+    thread = threading.Thread(target=srv.serve_forever, daemon=True)
+    thread.start()
+    try:
+        status, body = request(srv, "GET", "/preview")
+    finally:
+        srv.shutdown()
+        srv.session.cleanup()
+        srv.server_close()
+
+    assert status == 200
+    assert body.count(b"preserve-3d") == 1
+
+
 def test_save_sanitizes_filename_to_its_stem(server, tmp_path):
     status, body = request(server, "POST", "/save", {"filename": "../../etc/passwd"})
 
