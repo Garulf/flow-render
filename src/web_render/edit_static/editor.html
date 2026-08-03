@@ -1,2 +1,345 @@
 <!doctype html>
-<html><head><title>web-render edit mode</title></head><body>Loading editor…</body></html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>web-render edit mode</title>
+<style>
+  html, body { margin: 0; height: 100%; font-family: sans-serif; }
+  #app { display: flex; height: 100%; }
+  #preview-pane { flex: 1; background: #111; }
+  #preview-frame { width: 100%; height: 100%; border: 0; }
+  #panel { width: 320px; padding: 16px; overflow-y: auto; background: #1c1c1c; color: #eee; box-sizing: border-box; }
+  #panel h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; color: #999; margin: 20px 0 8px; }
+  #panel h2:first-child { margin-top: 0; }
+  #panel label { display: block; font-size: 12px; margin: 8px 0 2px; }
+  #panel input[type=range] { width: 100%; }
+  #panel input[type=color], #panel input[type=text], #panel select, #panel textarea {
+    width: 100%; box-sizing: border-box; margin-bottom: 4px;
+  }
+  .element-btn { display: block; width: 100%; text-align: left; padding: 6px 8px; margin: 2px 0;
+    background: #2a2a2a; color: #eee; border: 1px solid #3a3a3a; border-radius: 4px; cursor: pointer; }
+  .element-btn.selected { background: #3a5a8a; border-color: #5a7aba; }
+  .layer-tab { display: inline-block; padding: 4px 10px; margin: 2px; background: #2a2a2a; color: #eee;
+    border: 1px solid #3a3a3a; border-radius: 4px; cursor: pointer; }
+  .layer-tab.active { background: #3a5a8a; }
+  #save-row { margin-top: 24px; display: flex; gap: 6px; }
+  #save-row input { flex: 1; }
+  #save-status { font-size: 12px; color: #7dc47d; margin-top: 6px; min-height: 1em; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="preview-pane"><iframe id="preview-frame"></iframe></div>
+  <div id="panel">
+    <h2>Canvas background</h2>
+    <label>Angle (deg)</label>
+    <input type="range" id="canvas-angle" min="0" max="360" value="180">
+    <label>Stop 1</label>
+    <input type="color" id="canvas-stop-0" value="#1a1a2e">
+    <label>Stop 2</label>
+    <input type="color" id="canvas-stop-1" value="#16213e">
+
+    <h2>Elements</h2>
+    <div id="element-list"></div>
+
+    <div id="element-panel" style="display:none">
+      <h2 id="element-panel-title">Element</h2>
+      <label>Translate X (px)</label>
+      <input type="range" id="tx" min="-400" max="400" value="0">
+      <label>Translate Y (px)</label>
+      <input type="range" id="ty" min="-400" max="400" value="0">
+      <label>Translate Z (px)</label>
+      <input type="range" id="tz" min="-400" max="400" value="0">
+      <label>Rotate X (deg)</label>
+      <input type="range" id="rx" min="-180" max="180" value="0">
+      <label>Rotate Y (deg)</label>
+      <input type="range" id="ry" min="-180" max="180" value="0">
+      <label>Rotate Z (deg)</label>
+      <input type="range" id="rz" min="-180" max="180" value="0">
+    </div>
+
+    <h2>Text layers</h2>
+    <div id="layer-tabs"></div>
+    <button id="add-layer-btn">+ Add layer</button>
+    <div id="layer-panel" style="display:none">
+      <label>Jinja2 template</label>
+      <textarea id="layer-template" rows="2">{{ plugin.Name }}</textarea>
+      <label>Font size (px)</label>
+      <input type="range" id="layer-font-size" min="8" max="120" value="32">
+      <label>Color</label>
+      <input type="color" id="layer-color" value="#ffffff">
+      <label>Weight</label>
+      <select id="layer-weight">
+        <option value="normal">Normal</option>
+        <option value="bold">Bold</option>
+      </select>
+      <label>Translate X (px)</label>
+      <input type="range" id="layer-tx" min="-400" max="400" value="0">
+      <label>Translate Y (px)</label>
+      <input type="range" id="layer-ty" min="-400" max="400" value="0">
+      <label>Translate Z (px)</label>
+      <input type="range" id="layer-tz" min="-400" max="400" value="0">
+      <label>Rotate X (deg)</label>
+      <input type="range" id="layer-rx" min="-180" max="180" value="0">
+      <label>Rotate Y (deg)</label>
+      <input type="range" id="layer-ry" min="-180" max="180" value="0">
+      <label>Rotate Z (deg)</label>
+      <input type="range" id="layer-rz" min="-180" max="180" value="0">
+    </div>
+
+    <div id="save-row">
+      <input type="text" id="save-filename" placeholder="theme name">
+      <button id="save-btn">Save</button>
+    </div>
+    <div id="save-status"></div>
+  </div>
+</div>
+<script>
+const SELECTABLE = [
+  { label: 'Window', selector: '#WindowBorder' },
+  { label: 'Search icon', selector: '#GlassIcon' },
+  { label: 'Query box', selector: '#QueryBoxArea' },
+  { label: 'Separator', selector: '#Separator' },
+  { label: 'Result row', selector: '.item' },
+  { label: 'Result icon', selector: '.icon' },
+  { label: 'Title', selector: '.Title' },
+  { label: 'Subtitle', selector: '.SubTitle' },
+  { label: 'Hotkey', selector: '.Hotkey' },
+];
+const LAYER_SLOTS = 4;
+
+const frame = document.getElementById('preview-frame');
+let currentState = null;
+let selectedSelector = null;
+let selectedLayer = null;
+let updateTimer = null;
+
+function debounce(fn, ms) {
+  return (...args) => {
+    clearTimeout(updateTimer);
+    updateTimer = setTimeout(() => fn(...args), ms);
+  };
+}
+
+async function loadPreview() {
+  const res = await fetch('/preview');
+  const html = await res.text();
+  frame.srcdoc = html;
+  await new Promise((resolve) => { frame.onload = resolve; });
+  wireClickHandlers();
+}
+
+function wireClickHandlers() {
+  const doc = frame.contentDocument;
+  SELECTABLE.forEach(({ selector }) => {
+    doc.querySelectorAll(selector).forEach((el) => {
+      el.addEventListener('click', (event) => {
+        event.stopPropagation();
+        selectElement(selector);
+      });
+      el.style.cursor = 'pointer';
+    });
+  });
+  for (let i = 0; i < LAYER_SLOTS; i++) {
+    doc.querySelectorAll(`#Layer${i + 1}`).forEach((el) => {
+      el.addEventListener('click', (event) => {
+        event.stopPropagation();
+        selectLayer(i);
+      });
+      el.style.cursor = 'pointer';
+    });
+  }
+}
+
+async function fetchState() {
+  const res = await fetch('/state');
+  currentState = await res.json();
+  return currentState;
+}
+
+async function postUpdate(payload) {
+  await fetch('/update', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  await loadPreview();
+}
+
+function renderElementList() {
+  const list = document.getElementById('element-list');
+  list.innerHTML = '';
+  SELECTABLE.forEach(({ label, selector }) => {
+    const btn = document.createElement('button');
+    btn.className = 'element-btn' + (selector === selectedSelector ? ' selected' : '');
+    btn.textContent = label;
+    btn.onclick = () => selectElement(selector);
+    list.appendChild(btn);
+  });
+}
+
+function selectElement(selector) {
+  selectedSelector = selector;
+  selectedLayer = null;
+  document.getElementById('layer-panel').style.display = 'none';
+  document.getElementById('element-panel').style.display = 'block';
+  document.getElementById('element-panel-title').textContent = selector;
+  const transform = (currentState.elements && currentState.elements[selector]) || {
+    translate_x: 0, translate_y: 0, translate_z: 0, rotate_x: 0, rotate_y: 0, rotate_z: 0,
+  };
+  document.getElementById('tx').value = transform.translate_x;
+  document.getElementById('ty').value = transform.translate_y;
+  document.getElementById('tz').value = transform.translate_z;
+  document.getElementById('rx').value = transform.rotate_x;
+  document.getElementById('ry').value = transform.rotate_y;
+  document.getElementById('rz').value = transform.rotate_z;
+  renderElementList();
+}
+
+const sendElementUpdate = debounce(() => {
+  postUpdate({
+    type: 'element',
+    selector: selectedSelector,
+    transform: {
+      translate_x: Number(document.getElementById('tx').value),
+      translate_y: Number(document.getElementById('ty').value),
+      translate_z: Number(document.getElementById('tz').value),
+      rotate_x: Number(document.getElementById('rx').value),
+      rotate_y: Number(document.getElementById('ry').value),
+      rotate_z: Number(document.getElementById('rz').value),
+    },
+  }).then(fetchState);
+}, 80);
+
+['tx', 'ty', 'tz', 'rx', 'ry', 'rz'].forEach((id) => {
+  document.getElementById(id).addEventListener('input', () => {
+    if (selectedSelector) sendElementUpdate();
+  });
+});
+
+function renderLayerTabs() {
+  const tabs = document.getElementById('layer-tabs');
+  tabs.innerHTML = '';
+  for (let i = 0; i < LAYER_SLOTS; i++) {
+    const layer = currentState.layers[i];
+    if (!layer.active) continue;
+    const tab = document.createElement('span');
+    tab.className = 'layer-tab' + (i === selectedLayer ? ' active' : '');
+    tab.textContent = `Layer ${i + 1}`;
+    tab.onclick = () => selectLayer(i);
+    tabs.appendChild(tab);
+  }
+  document.getElementById('add-layer-btn').disabled =
+    currentState.layers.every((layer) => layer.active);
+}
+
+function selectLayer(index) {
+  selectedLayer = index;
+  selectedSelector = null;
+  document.getElementById('element-panel').style.display = 'none';
+  document.getElementById('layer-panel').style.display = 'block';
+  const layer = currentState.layers[index];
+  document.getElementById('layer-template').value = layer.template;
+  document.getElementById('layer-font-size').value = layer.font_size;
+  document.getElementById('layer-color').value = layer.color;
+  document.getElementById('layer-weight').value = layer.weight;
+  document.getElementById('layer-tx').value = layer.transform.translate_x;
+  document.getElementById('layer-ty').value = layer.transform.translate_y;
+  document.getElementById('layer-tz').value = layer.transform.translate_z;
+  document.getElementById('layer-rx').value = layer.transform.rotate_x;
+  document.getElementById('layer-ry').value = layer.transform.rotate_y;
+  document.getElementById('layer-rz').value = layer.transform.rotate_z;
+  renderLayerTabs();
+}
+
+const sendLayerUpdate = debounce(() => {
+  postUpdate({
+    type: 'layer',
+    slot: selectedLayer,
+    layer: {
+      active: true,
+      template: document.getElementById('layer-template').value,
+      font_size: Number(document.getElementById('layer-font-size').value),
+      color: document.getElementById('layer-color').value,
+      weight: document.getElementById('layer-weight').value,
+      transform: {
+        translate_x: Number(document.getElementById('layer-tx').value),
+        translate_y: Number(document.getElementById('layer-ty').value),
+        translate_z: Number(document.getElementById('layer-tz').value),
+        rotate_x: Number(document.getElementById('layer-rx').value),
+        rotate_y: Number(document.getElementById('layer-ry').value),
+        rotate_z: Number(document.getElementById('layer-rz').value),
+      },
+    },
+  }).then(fetchState).then(renderLayerTabs);
+}, 80);
+
+['layer-template', 'layer-font-size', 'layer-color', 'layer-weight',
+ 'layer-tx', 'layer-ty', 'layer-tz', 'layer-rx', 'layer-ry', 'layer-rz'].forEach((id) => {
+  document.getElementById(id).addEventListener('input', () => {
+    if (selectedLayer !== null) sendLayerUpdate();
+  });
+  document.getElementById(id).addEventListener('change', () => {
+    if (selectedLayer !== null) sendLayerUpdate();
+  });
+});
+
+document.getElementById('add-layer-btn').addEventListener('click', async () => {
+  await fetchState();
+  const slot = currentState.layers.findIndex((layer) => !layer.active);
+  if (slot === -1) return;
+  await postUpdate({
+    type: 'layer',
+    slot,
+    layer: {
+      active: true, template: '{{ plugin.Name }}', font_size: 32, color: '#ffffff', weight: 'normal',
+      transform: { translate_x: 0, translate_y: 0, translate_z: 0, rotate_x: 0, rotate_y: 0, rotate_z: 0 },
+    },
+  });
+  await fetchState();
+  renderLayerTabs();
+  selectLayer(slot);
+});
+
+const sendCanvasUpdate = debounce(() => {
+  postUpdate({
+    type: 'canvas',
+    canvas: {
+      angle: Number(document.getElementById('canvas-angle').value),
+      stops: [
+        { color: document.getElementById('canvas-stop-0').value, position: 0 },
+        { color: document.getElementById('canvas-stop-1').value, position: 100 },
+      ],
+    },
+  });
+}, 80);
+
+['canvas-angle', 'canvas-stop-0', 'canvas-stop-1'].forEach((id) => {
+  document.getElementById(id).addEventListener('input', sendCanvasUpdate);
+});
+
+document.getElementById('save-btn').addEventListener('click', async () => {
+  const filename = document.getElementById('save-filename').value.trim();
+  const status = document.getElementById('save-status');
+  if (!filename) {
+    status.textContent = 'Enter a filename first.';
+    return;
+  }
+  const res = await fetch('/save', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ filename }),
+  });
+  const result = await res.json();
+  status.textContent = `Saved to ${result.path}`;
+});
+
+(async function init() {
+  await fetchState();
+  renderElementList();
+  renderLayerTabs();
+  await loadPreview();
+})();
+</script>
+</body>
+</html>
