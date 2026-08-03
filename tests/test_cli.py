@@ -21,7 +21,7 @@ MAIN_PY = (
 
 
 def test_setup_without_config_or_plugin_exits_with_usage_error():
-    args = Namespace(config=None, plugin=None, plugin_url=None, query=None, i=False, css=None, output=None, max_results=3)
+    args = Namespace(config=None, plugin=None, plugin_url=None, query=None, i=False, css=None, output=None, max_results=3, command=None)
 
     with pytest.raises(SystemExit):
         cli.setup(args)
@@ -33,7 +33,7 @@ def test_setup_with_plugin_builds_config_and_renders(tmp_path, monkeypatch):
     rendered = {}
     monkeypatch.setattr(cli, "main", lambda config, output_dir=None: rendered.update(config=config, output_dir=output_dir))
 
-    cli.setup(Namespace(config=None, plugin=str(tmp_path), plugin_url=None, query="q", i=False, css=None, output=None, max_results=3))
+    cli.setup(Namespace(config=None, plugin=str(tmp_path), plugin_url=None, query="q", i=False, css=None, output=None, max_results=3, command=None))
 
     assert isinstance(rendered["config"], Config)
     assert rendered["config"].results[0]["title"] == "a"
@@ -53,7 +53,7 @@ def test_setup_with_plugin_url_builds_config_and_renders(tmp_path, monkeypatch):
     rendered = {}
     monkeypatch.setattr(cli, "main", lambda config, output_dir=None: rendered.update(config=config, output_dir=output_dir))
 
-    cli.setup(Namespace(config=None, plugin=None, plugin_url=str(zip_path), query="q", i=False, css=None, output=None, max_results=3))
+    cli.setup(Namespace(config=None, plugin=None, plugin_url=str(zip_path), query="q", i=False, css=None, output=None, max_results=3, command=None))
 
     assert isinstance(rendered["config"], Config)
     assert rendered["config"].results[0]["title"] == "a"
@@ -65,7 +65,7 @@ def test_setup_with_css_sets_config_css(tmp_path, monkeypatch):
     rendered = {}
     monkeypatch.setattr(cli, "main", lambda config, output_dir=None: rendered.update(config=config, output_dir=output_dir))
 
-    cli.setup(Namespace(config=None, plugin=str(tmp_path), plugin_url=None, query="q", i=False, css=["win11-dark.css"], output=None, max_results=3))
+    cli.setup(Namespace(config=None, plugin=str(tmp_path), plugin_url=None, query="q", i=False, css=["win11-dark.css"], output=None, max_results=3, command=None))
 
     assert rendered["config"].css == "win11-dark.css"
 
@@ -76,7 +76,7 @@ def test_setup_with_multiple_css_sets_config_css_list(tmp_path, monkeypatch):
     rendered = {}
     monkeypatch.setattr(cli, "main", lambda config, output_dir=None: rendered.update(config=config, output_dir=output_dir))
 
-    cli.setup(Namespace(config=None, plugin=str(tmp_path), plugin_url=None, query="q", i=False, css=["win11-dark.css", "ad-neon.css"], output=None, max_results=3))
+    cli.setup(Namespace(config=None, plugin=str(tmp_path), plugin_url=None, query="q", i=False, css=["win11-dark.css", "ad-neon.css"], output=None, max_results=3, command=None))
 
     assert rendered["config"].css == ["win11-dark.css", "ad-neon.css"]
 
@@ -87,7 +87,7 @@ def test_setup_passes_output_flag_through_to_main(tmp_path, monkeypatch):
     rendered = {}
     monkeypatch.setattr(cli, "main", lambda config, output_dir=None: rendered.update(config=config, output_dir=output_dir))
 
-    cli.setup(Namespace(config=None, plugin=str(tmp_path), plugin_url=None, query="q", i=False, css=None, output="/tmp/somewhere", max_results=3))
+    cli.setup(Namespace(config=None, plugin=str(tmp_path), plugin_url=None, query="q", i=False, css=None, output="/tmp/somewhere", max_results=3, command=None))
 
     assert rendered["output_dir"] == "/tmp/somewhere"
 
@@ -140,7 +140,7 @@ def test_setup_with_max_results_caps_config_results(tmp_path, monkeypatch):
     rendered = {}
     monkeypatch.setattr(cli, "main", lambda config, output_dir=None: rendered.update(config=config, output_dir=output_dir))
 
-    cli.setup(Namespace(config=None, plugin=str(tmp_path), plugin_url=None, query="q", i=False, css=None, output=None, max_results=2))
+    cli.setup(Namespace(config=None, plugin=str(tmp_path), plugin_url=None, query="q", i=False, css=None, output=None, max_results=2, command=None))
 
     assert [r["title"] for r in rendered["config"].results] == ["a", "b"]
 
@@ -158,7 +158,7 @@ def test_setup_with_plugin_and_i_renders_plugin_manager_view(tmp_path, monkeypat
     rendered = {}
     monkeypatch.setattr(cli, "main", lambda config, output_dir=None: rendered.update(config=config))
 
-    cli.setup(Namespace(config=None, plugin=str(tmp_path), plugin_url=None, query=None, i=True, css=None, output=None, max_results=3))
+    cli.setup(Namespace(config=None, plugin=str(tmp_path), plugin_url=None, query=None, i=True, css=None, output=None, max_results=3, command=None))
 
     config = rendered["config"]
     assert config.query == "pm install Steam Search"
@@ -180,9 +180,62 @@ def test_setup_with_plugin_url_and_i_renders_plugin_manager_view(tmp_path, monke
     rendered = {}
     monkeypatch.setattr(cli, "main", lambda config, output_dir=None: rendered.update(config=config))
 
-    cli.setup(Namespace(config=None, plugin=None, plugin_url=str(zip_path), query=None, i=True, css=None, output=None, max_results=3))
+    cli.setup(Namespace(config=None, plugin=None, plugin_url=str(zip_path), query=None, i=True, css=None, output=None, max_results=3, command=None))
 
     config = rendered["config"]
     assert config.query == "pm install Steam Search"
     assert config.results[0]["title"] == "Steam Search by Garulf"
     assert config.results[0]["subtitle"] == "Search and launch your Steam Game library"
+
+
+def test_get_args_edit_subcommand_parses_plugin_and_query_and_css():
+    args = cli.get_args(["edit", "-p", "./plugin", "-q", "steam", "-s", "ad-neon.css"])
+
+    assert args.command == "edit"
+    assert args.plugin == "./plugin"
+    assert args.query == "steam"
+    assert args.css == ["ad-neon.css"]
+
+
+def test_get_args_no_subcommand_has_command_none():
+    args = cli.get_args(["-p", "./plugin"])
+
+    assert args.command is None
+
+
+def test_setup_edit_without_plugin_or_url_exits_with_usage_error():
+    args = Namespace(command="edit", plugin=None, plugin_url=None, query=None, css=None,
+                     config=None, i=False, output=None, max_results=3)
+
+    with pytest.raises(SystemExit):
+        cli.setup(args)
+
+
+def test_setup_edit_dispatches_to_edit_server_run(tmp_path, monkeypatch):
+    (tmp_path / "plugin.json").write_text(json.dumps(MANIFEST))
+    (tmp_path / "main.py").write_text(MAIN_PY)
+    captured = {}
+    monkeypatch.setattr(cli.edit_server, "run",
+                        lambda config, base_css_files, **kw: captured.update(
+                            config=config, base_css_files=base_css_files))
+
+    args = Namespace(command="edit", plugin=str(tmp_path), plugin_url=None, query=None,
+                     css=["ad-neon.css"], config=None, i=False, output=None, max_results=3)
+    cli.setup(args)
+
+    assert captured["config"].plugin["Name"] == "Test"
+    assert captured["base_css_files"] == ["ad-neon.css"]
+
+
+def test_setup_edit_with_query_uses_plugin_to_config(tmp_path, monkeypatch):
+    (tmp_path / "plugin.json").write_text(json.dumps(MANIFEST))
+    (tmp_path / "main.py").write_text(MAIN_PY)
+    captured = {}
+    monkeypatch.setattr(cli.edit_server, "run",
+                        lambda config, base_css_files, **kw: captured.update(config=config))
+
+    args = Namespace(command="edit", plugin=str(tmp_path), plugin_url=None, query="q",
+                     css=None, config=None, i=False, output=None, max_results=3)
+    cli.setup(args)
+
+    assert captured["config"].results[0]["title"] == "a"
