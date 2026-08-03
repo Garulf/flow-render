@@ -81,6 +81,24 @@ def test_css_files_returns_list_as_is():
     assert config.css_files == ["win11-dark.css", "ad-neon.css"]
 
 
+def test_visible_results_truncates_to_max_results():
+    config = make_config(
+        max_results=2,
+        results=[
+            {"title": f"r{i}", "subtitle": "sub", "icon": "data:image/png;base64,y"}
+            for i in range(5)
+        ],
+    )
+
+    assert [r["title"] for r in config.visible_results] == ["r0", "r1"]
+
+
+def test_visible_results_returns_all_when_under_capacity():
+    config = make_config(max_results=5)
+
+    assert config.visible_results == config.results
+
+
 def test_plugin_to_config_caps_and_orders_results(tmp_path, monkeypatch):
     manifest = {
         "ID": "1", "ActionKeyword": "t", "Name": "Test", "Description": "",

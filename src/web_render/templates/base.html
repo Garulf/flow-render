@@ -40,7 +40,7 @@
                 </div>
                 <div id="Separator"></div>
                 <div id="ResultsList">
-                    {% for result in results %}
+                    {% for result in render_data.visible_results %}
                         <div class="item {{ 'selecteditem' if selection == loop.index0 else '' }}">
                             <div class="icon">
                                 <img src="{{ result.icon }}" width="38" height="38">
@@ -52,7 +52,7 @@
                             <div class="Hotkey">{{ 'Alt+' ~ loop.index if loop.index <= 9 else '' }}</div>
                         </div>
                     {% endfor %}
-                    {% if results|length >= max_results %}
+                    {% if results|length > max_results %}
                         <div id="ResultsScrollbar"><div class="thumb"></div></div>
                     {% endif %}
                 </div>

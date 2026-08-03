@@ -53,13 +53,22 @@ def make_config(result_count, max_results):
     )
 
 
-def test_render_shows_scrollbar_when_results_are_at_capacity(tmp_path, monkeypatch):
+def test_render_shows_scrollbar_when_results_exceed_max_results(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    output = tmp_path / "out.html"
+
+    render_from_config(make_config(5, max_results=3), str(output))
+
+    assert '<div id="ResultsScrollbar">' in output.read_text()
+
+
+def test_render_hides_scrollbar_when_results_are_at_capacity(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     output = tmp_path / "out.html"
 
     render_from_config(make_config(3, max_results=3), str(output))
 
-    assert '<div id="ResultsScrollbar">' in output.read_text()
+    assert '<div id="ResultsScrollbar">' not in output.read_text()
 
 
 def test_render_hides_scrollbar_when_results_are_under_capacity(tmp_path, monkeypatch):
@@ -69,3 +78,14 @@ def test_render_hides_scrollbar_when_results_are_under_capacity(tmp_path, monkey
     render_from_config(make_config(2, max_results=3), str(output))
 
     assert '<div id="ResultsScrollbar">' not in output.read_text()
+
+
+def test_render_truncates_results_to_max_results(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    output = tmp_path / "out.html"
+
+    render_from_config(make_config(5, max_results=3), str(output))
+
+    html = output.read_text()
+    assert "r0" in html and "r1" in html and "r2" in html
+    assert "r3" not in html and "r4" not in html

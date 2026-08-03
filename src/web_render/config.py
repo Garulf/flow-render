@@ -36,6 +36,10 @@ class Config:
         return list(self.css)
 
     @property
+    def visible_results(self) -> List[PluginResult]:
+        return self.results[:self.max_results]
+
+    @property
     def suggested_query(self) -> str:
         if not self.results:
             return ""
