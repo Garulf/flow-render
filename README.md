@@ -84,6 +84,8 @@ web-render -c ./example/config.json
 | `-s`, `--css` | Stylesheet(s) to render with, e.g. `win11-dark.css` or `win11-dark.css ad-neon.css` (only applies with `-p`/`-u`; a config file's own `css` field takes precedence with `-c`) |
 | `-o`, `--output` | Directory to save the rendered PNG in (defaults to a per-user data directory, see above) |
 | `-m`, `--max-results` | Maximum number of results to render (only applies with `-p`/`-u`; default: 3) |
+| `-W`, `--width` | Screenshot width in px (overrides any canvas size baked into the selected theme; defaults to 1280) |
+| `-H`, `--height` | Screenshot height in px (overrides any canvas size baked into the selected theme; defaults to 720) |
 
 With `-p`, the plugin's `ExecuteFileName` is invoked as a subprocess with a
 `{"method": "query", "parameters": [query]}` request and its results become the
@@ -120,7 +122,11 @@ In the editor:
   needed for the tilted-window look the `ad-*.css` hero themes use.
 - The canvas (behind the window) is edited globally, not per element: pick
   a gradient (angle + two color stops) or a transparent background, and set
-  the canvas width/height to match the aspect ratio you're designing for.
+  the canvas width/height. This is the actual final screenshot's pixel
+  size (not just the live preview) — saved as a
+  `/* web-render-canvas: WxH */` marker at the top of the theme, which the
+  normal (non-edit) command reads automatically when that theme is
+  selected with `-s`. `-W`/`-H` on the command line override it.
 - "+ Add layer" adds a freeform text layer (up to 4), each a sibling of the
   window rather than nested inside it, so it doesn't inherit the window's
   own rotation — with its own Jinja2 template (e.g. `{{ plugin.Name }}`)
