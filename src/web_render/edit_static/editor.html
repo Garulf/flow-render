@@ -6,8 +6,20 @@
 <style>
   html, body { margin: 0; height: 100%; font-family: sans-serif; }
   #app { display: flex; height: 100%; }
-  #preview-pane { flex: 1; background: #111; position: relative; overflow: auto; }
-  #preview-frame { border: 0; display: block; }
+  #preview-pane {
+    flex: 1; position: relative; overflow: auto;
+    /* Checkerboard so a transparent canvas is visibly transparent, not just "dark" —
+       shows through the iframe naturally wherever its page background is transparent. */
+    background-image:
+      linear-gradient(45deg, #4a4a4a 25%, transparent 25%),
+      linear-gradient(-45deg, #4a4a4a 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #4a4a4a 75%),
+      linear-gradient(-45deg, transparent 75%, #4a4a4a 75%);
+    background-size: 20px 20px;
+    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+    background-color: #2b2b2b;
+  }
+  #preview-frame { display: block; border: 2px solid #5a7aba; box-sizing: content-box; }
   #panel { width: 340px; padding: 16px; overflow-y: auto; background: #1c1c1c; color: #eee; box-sizing: border-box; }
   #panel h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; color: #999; margin: 20px 0 8px; }
   #panel h2:first-child { margin-top: 0; }
@@ -53,8 +65,11 @@
       <label style="margin:0">Height <input type="number" id="canvas-height" min="200" max="4000" value="720"></label>
     </div>
 
-    <label class="checkbox-label"><input type="checkbox" id="canvas-gradient-enabled"> Gradient background</label>
-    <label class="checkbox-label"><input type="checkbox" id="canvas-transparent"> Transparent canvas</label>
+    <div id="canvas-mode-group">
+      <label class="checkbox-label"><input type="radio" name="canvas-mode" id="canvas-mode-default" value="default" checked> Theme default</label>
+      <label class="checkbox-label"><input type="radio" name="canvas-mode" id="canvas-mode-gradient" value="gradient"> Gradient</label>
+      <label class="checkbox-label"><input type="radio" name="canvas-mode" id="canvas-mode-transparent" value="transparent"> Transparent</label>
+    </div>
     <div id="canvas-gradient-controls">
       <div id="canvas-angle-row"></div>
       <label>Stop 1</label>
@@ -110,16 +125,17 @@ const SELECTABLE = [
 ];
 const LAYER_SLOTS = 4;
 const AXES = [
-  { key: 'translate_x', label: 'Translate X (px)', min: -400, max: 400 },
-  { key: 'translate_y', label: 'Translate Y (px)', min: -400, max: 400 },
-  { key: 'translate_z', label: 'Translate Z (px)', min: -400, max: 400 },
-  { key: 'rotate_x', label: 'Rotate X (deg)', min: -180, max: 180 },
-  { key: 'rotate_y', label: 'Rotate Y (deg)', min: -180, max: 180 },
-  { key: 'rotate_z', label: 'Rotate Z (deg)', min: -180, max: 180 },
+  { key: 'translate_x', label: 'Translate X (px)', min: -400, max: 400, step: 1, reset: 0 },
+  { key: 'translate_y', label: 'Translate Y (px)', min: -400, max: 400, step: 1, reset: 0 },
+  { key: 'translate_z', label: 'Translate Z (px)', min: -400, max: 400, step: 1, reset: 0 },
+  { key: 'rotate_x', label: 'Rotate X (deg)', min: -180, max: 180, step: 1, reset: 0 },
+  { key: 'rotate_y', label: 'Rotate Y (deg)', min: -180, max: 180, step: 1, reset: 0 },
+  { key: 'rotate_z', label: 'Rotate Z (deg)', min: -180, max: 180, step: 1, reset: 0 },
+  { key: 'scale', label: 'Scale', min: 0.1, max: 3, step: 0.05, reset: 1 },
 ];
 const DEFAULT_TRANSFORM = {
   translate_x: 0, translate_y: 0, translate_z: 0,
-  rotate_x: 0, rotate_y: 0, rotate_z: 0, perspective: false,
+  rotate_x: 0, rotate_y: 0, rotate_z: 0, scale: 1, perspective: false,
 };
 
 const frame = document.getElementById('preview-frame');
@@ -138,11 +154,12 @@ function debounce(fn, ms) {
 function transformToCss(t) {
   const prefix = t.perspective ? 'perspective(2000px) ' : '';
   return `${prefix}translate3d(${t.translate_x}px, ${t.translate_y}px, ${t.translate_z}px) `
-    + `rotateX(${t.rotate_x}deg) rotateY(${t.rotate_y}deg) rotateZ(${t.rotate_z}deg)`;
+    + `rotateX(${t.rotate_x}deg) rotateY(${t.rotate_y}deg) rotateZ(${t.rotate_z}deg) scale(${t.scale})`;
 }
 
 // A single slider + live number box + reset button, wired to call onChange(value) on any interaction.
-function createSliderRow(container, { id, label, min, max, value = 0, onChange }) {
+// `reset` is the value the reset button restores (0 for translate/rotate, 1 for scale).
+function createSliderRow(container, { id, label, min, max, step = 1, value = 0, reset: resetValue = 0, onChange }) {
   const row = document.createElement('div');
   row.className = 'slider-row';
   const labelEl = document.createElement('label');
@@ -151,16 +168,16 @@ function createSliderRow(container, { id, label, min, max, value = 0, onChange }
   controls.className = 'slider-controls';
 
   const range = document.createElement('input');
-  range.type = 'range'; range.min = min; range.max = max; range.value = value; range.id = `${id}-range`;
+  range.type = 'range'; range.min = min; range.max = max; range.step = step; range.value = value; range.id = `${id}-range`;
   const num = document.createElement('input');
-  num.type = 'number'; num.min = min; num.max = max; num.value = value; num.id = `${id}-num`;
+  num.type = 'number'; num.min = min; num.max = max; num.step = step; num.value = value; num.id = `${id}-num`;
   const reset = document.createElement('button');
   reset.type = 'button'; reset.textContent = '↺'; reset.title = 'Reset'; reset.className = 'reset-btn';
 
   const set = (v) => { range.value = v; num.value = v; onChange(Number(v)); };
   range.addEventListener('input', () => set(range.value));
-  num.addEventListener('input', () => set(num.value === '' ? 0 : num.value));
-  reset.addEventListener('click', () => set(0));
+  num.addEventListener('input', () => set(num.value === '' ? resetValue : num.value));
+  reset.addEventListener('click', () => set(resetValue));
 
   controls.append(range, num, reset);
   row.append(labelEl, controls);
@@ -175,9 +192,9 @@ function createTransformControls(container, prefix, onChange) {
   const rows = {};
   const values = { ...DEFAULT_TRANSFORM };
 
-  AXES.forEach(({ key, label, min, max }) => {
+  AXES.forEach(({ key, label, min, max, step, reset }) => {
     rows[key] = createSliderRow(container, {
-      id: `${prefix}-${key}`, label, min, max, value: values[key],
+      id: `${prefix}-${key}`, label, min, max, step, reset, value: values[key],
       onChange: (v) => { values[key] = v; onChange({ ...values }); },
     });
   });
@@ -376,8 +393,9 @@ function currentLayerPayload() {
 // so this re-reads the same DOM inputs createSliderRow wired up for the layer panel.
 function currentLayerTransformValues() {
   const values = { ...DEFAULT_TRANSFORM };
-  AXES.forEach(({ key }) => {
-    values[key] = Number(document.getElementById(`layer-${key}-num`).value) || 0;
+  AXES.forEach(({ key, reset }) => {
+    const raw = document.getElementById(`layer-${key}-num`).value;
+    values[key] = raw === '' ? reset : Number(raw);
   });
   values.perspective = document.getElementById('layer-perspective').checked;
   return values;
@@ -462,15 +480,18 @@ function currentCanvasGradientCss() {
   return `linear-gradient(${angle}deg, ${stop0} 0%, ${stop1} 100%)`;
 }
 
+function currentCanvasMode() {
+  return document.querySelector('input[name="canvas-mode"]:checked').value;
+}
+
 function applyCanvasBackgroundToFrame() {
   const doc = frame.contentDocument;
   if (!doc) return;
-  const gradientEnabled = document.getElementById('canvas-gradient-enabled').checked;
-  const transparent = document.getElementById('canvas-transparent').checked;
+  const mode = currentCanvasMode();
   let value = '';
-  if (transparent) {
+  if (mode === 'transparent') {
     value = 'transparent';
-  } else if (gradientEnabled) {
+  } else if (mode === 'gradient') {
     value = currentCanvasGradientCss();
   }
   doc.documentElement.style.background = value;
@@ -478,17 +499,16 @@ function applyCanvasBackgroundToFrame() {
 }
 
 function updateCanvasControlsVisibility() {
-  const gradientEnabled = document.getElementById('canvas-gradient-enabled').checked;
-  document.getElementById('canvas-gradient-controls').style.display = gradientEnabled ? 'block' : 'none';
+  document.getElementById('canvas-gradient-controls').style.display =
+    currentCanvasMode() === 'gradient' ? 'block' : 'none';
 }
 
 const sendCanvasUpdate = debounce(() => {
-  const gradientEnabled = document.getElementById('canvas-gradient-enabled').checked;
-  const transparent = document.getElementById('canvas-transparent').checked;
+  const mode = currentCanvasMode();
   persistUpdate({
     type: 'canvas',
-    transparent,
-    canvas: gradientEnabled ? {
+    transparent: mode === 'transparent',
+    canvas: mode === 'gradient' ? {
       angle: Number(document.getElementById('canvas-angle-num').value) || 0,
       stops: [
         { color: document.getElementById('canvas-stop-0').value, position: 0 },
@@ -503,19 +523,11 @@ function applyAndSendCanvasUpdate() {
   sendCanvasUpdate();
 }
 
-document.getElementById('canvas-gradient-enabled').addEventListener('change', () => {
-  if (document.getElementById('canvas-gradient-enabled').checked) {
-    document.getElementById('canvas-transparent').checked = false;
-  }
-  updateCanvasControlsVisibility();
-  applyAndSendCanvasUpdate();
-});
-document.getElementById('canvas-transparent').addEventListener('change', () => {
-  if (document.getElementById('canvas-transparent').checked) {
-    document.getElementById('canvas-gradient-enabled').checked = false;
+document.querySelectorAll('input[name="canvas-mode"]').forEach((radio) => {
+  radio.addEventListener('change', () => {
     updateCanvasControlsVisibility();
-  }
-  applyAndSendCanvasUpdate();
+    applyAndSendCanvasUpdate();
+  });
 });
 ['canvas-stop-0', 'canvas-stop-1'].forEach((id) => {
   document.getElementById(id).addEventListener('input', applyAndSendCanvasUpdate);
@@ -554,8 +566,8 @@ document.getElementById('save-btn').addEventListener('click', async () => {
 
 function syncControlsFromState() {
   const hasGradient = !!(currentState.canvas && currentState.canvas.stops && currentState.canvas.stops.length);
-  document.getElementById('canvas-gradient-enabled').checked = hasGradient;
-  document.getElementById('canvas-transparent').checked = !!currentState.transparent;
+  const mode = currentState.transparent ? 'transparent' : (hasGradient ? 'gradient' : 'default');
+  document.getElementById(`canvas-mode-${mode}`).checked = true;
   updateCanvasControlsVisibility();
   if (currentState.canvas) {
     angleRow.setValue(currentState.canvas.angle);

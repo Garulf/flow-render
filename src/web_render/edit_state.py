@@ -15,6 +15,7 @@ class Transform:
     rotate_x: float = 0
     rotate_y: float = 0
     rotate_z: float = 0
+    scale: float = 1
     perspective: bool = False
 
     def is_default(self) -> bool:
@@ -22,13 +23,14 @@ class Transform:
             self.translate_x, self.translate_y, self.translate_z,
             self.rotate_x, self.rotate_y, self.rotate_z,
             self.perspective,
-        ])
+        ]) and self.scale == 1
 
     def to_css_value(self) -> str:
         prefix = "perspective(2000px) " if self.perspective else ""
         return (
             f"{prefix}translate3d({self.translate_x}px, {self.translate_y}px, {self.translate_z}px) "
-            f"rotateX({self.rotate_x}deg) rotateY({self.rotate_y}deg) rotateZ({self.rotate_z}deg)"
+            f"rotateX({self.rotate_x}deg) rotateY({self.rotate_y}deg) rotateZ({self.rotate_z}deg) "
+            f"scale({self.scale})"
         )
 
 
@@ -141,6 +143,7 @@ def transform_from_dict(data: dict) -> Transform:
         rotate_x=data.get("rotate_x", 0),
         rotate_y=data.get("rotate_y", 0),
         rotate_z=data.get("rotate_z", 0),
+        scale=data.get("scale", 1),
         perspective=data.get("perspective", False),
     )
 

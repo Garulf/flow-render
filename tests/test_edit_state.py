@@ -17,12 +17,16 @@ def test_transform_is_not_default_when_perspective_enabled():
     assert not Transform(perspective=True).is_default()
 
 
+def test_transform_is_not_default_when_scale_is_not_one():
+    assert not Transform(scale=1.5).is_default()
+
+
 def test_transform_to_css_value():
     transform = Transform(translate_x=10, translate_y=-5, translate_z=0,
                           rotate_x=0, rotate_y=45, rotate_z=0)
 
     assert transform.to_css_value() == (
-        "translate3d(10px, -5px, 0px) rotateX(0deg) rotateY(45deg) rotateZ(0deg)"
+        "translate3d(10px, -5px, 0px) rotateX(0deg) rotateY(45deg) rotateZ(0deg) scale(1)"
     )
 
 
@@ -31,7 +35,15 @@ def test_transform_to_css_value_prefixes_perspective_when_enabled():
 
     assert transform.to_css_value() == (
         "perspective(2000px) translate3d(0px, 0px, 0px) "
-        "rotateX(45deg) rotateY(-45deg) rotateZ(0deg)"
+        "rotateX(45deg) rotateY(-45deg) rotateZ(0deg) scale(1)"
+    )
+
+
+def test_transform_to_css_value_includes_scale():
+    transform = Transform(scale=1.3)
+
+    assert transform.to_css_value() == (
+        "translate3d(0px, 0px, 0px) rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale(1.3)"
     )
 
 
@@ -74,7 +86,15 @@ def test_edit_state_to_css_emits_non_default_element_transform():
     css = edit_state_to_css(state)
 
     assert "#WindowBorder {" in css
-    assert "transform: translate3d(10px, 0px, 0px) rotateX(0deg) rotateY(45deg) rotateZ(0deg);" in css
+    assert "transform: translate3d(10px, 0px, 0px) rotateX(0deg) rotateY(45deg) rotateZ(0deg) scale(1);" in css
+
+
+def test_edit_state_to_css_emits_non_default_scale():
+    state = EditState(elements={"#WindowBorder": Transform(scale=1.3)})
+
+    css = edit_state_to_css(state)
+
+    assert "scale(1.3)" in css
 
 
 def test_edit_state_to_css_omits_inactive_layers():
