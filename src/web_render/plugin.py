@@ -50,7 +50,20 @@ class Plugin:
         process = subprocess.run(
             [sys.executable, self.execute_path, json.dumps(request)],
             cwd=self.path,
-            stdout=subprocess.PIPE
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
         )
-        output = json.loads(process.stdout.decode())
+        if process.returncode != 0:
+            raise RuntimeError(
+                f"Plugin process exited with code {process.returncode}:\n"
+                f"{process.stderr.decode(errors='replace')}"
+            )
+        try:
+            output = json.loads(process.stdout.decode())
+        except json.JSONDecodeError as exc:
+            raise RuntimeError(
+                "Plugin process did not return valid JSON.\n"
+                f"stdout: {process.stdout.decode(errors='replace')!r}\n"
+                f"stderr:\n{process.stderr.decode(errors='replace')}"
+            ) from exc
         return sort_results(output["result"])
