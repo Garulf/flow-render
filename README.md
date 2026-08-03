@@ -123,9 +123,12 @@ In the editor:
   with the sliders — each has a live-editable number box and a reset (↺)
   button, with wide ranges (e.g. translate up to ±2000px, rotate up to
   ±360°, scale up to 5x) to cover everything from subtle nudges to
-  dramatic hero-shot compositions. Because these are shared CSS selectors,
-  editing e.g. "Title" affects every result row, not just one. `.icon`,
-  `#GlassIcon`, and `.Hotkey` keep their own built-in vertical centering
+  dramatic hero-shot compositions. You can also drag an element directly in
+  the preview to set translate X/Y, and scroll the mouse wheel over it to
+  adjust scale — both stay in sync with the slider panel. Because these are
+  shared CSS selectors, editing e.g. "Title" affects every result row, not
+  just one. `.icon`, `#GlassIcon`, and `.Hotkey` keep their own built-in
+  vertical centering
   underneath whatever you add on top.
 - "Perspective" (0 = off) is what actually gives translateZ/rotateX/rotateY
   real 3D depth — without it, Z movement has no visible foreshortening.

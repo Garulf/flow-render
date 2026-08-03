@@ -406,24 +406,80 @@ async function refreshPreviewError() {
   }
 }
 
+const SCALE_AXIS = AXES.find((axis) => axis.key === 'scale');
+
+// Wires an element up for click-to-select, drag-to-translate (X/Y), and
+// scroll-wheel-to-scale, all funneled through the same apply/persist/panel-sync
+// path the sliders use (`setValues`) so dragging in the preview and dragging a
+// slider can never leave the panel and the live DOM out of sync.
+//
+// A plain click (mousedown+mouseup with no mousemove in between) only selects —
+// no mousemove event fires for zero movement, so no transform update is sent.
+function attachDragAndScale(el, { select, getValues, setValues }) {
+  el.style.cursor = 'move';
+
+  el.addEventListener('mousedown', (event) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    select();
+    const doc = el.ownerDocument;
+    const start = { ...getValues() };
+    const startX = event.clientX;
+    const startY = event.clientY;
+
+    function onMouseMove(moveEvent) {
+      setValues({
+        ...start,
+        translate_x: start.translate_x + (moveEvent.clientX - startX),
+        translate_y: start.translate_y + (moveEvent.clientY - startY),
+      });
+    }
+    function onMouseUp() {
+      doc.removeEventListener('mousemove', onMouseMove);
+      doc.removeEventListener('mouseup', onMouseUp);
+      // Also listen on the outer document: if the drag ends after the cursor
+      // left the iframe, the iframe's own document never sees that mouseup,
+      // which would otherwise leave these listeners attached indefinitely.
+      document.removeEventListener('mouseup', onMouseUp);
+    }
+    doc.addEventListener('mousemove', onMouseMove);
+    doc.addEventListener('mouseup', onMouseUp);
+    document.addEventListener('mouseup', onMouseUp);
+  });
+
+  el.addEventListener('wheel', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    select();
+    const values = getValues();
+    const direction = event.deltaY < 0 ? 1 : -1;
+    const nextScale = Math.min(
+      SCALE_AXIS.max,
+      Math.max(SCALE_AXIS.min, Math.round((values.scale + direction * SCALE_AXIS.step) * 100) / 100),
+    );
+    setValues({ ...values, scale: nextScale });
+  }, { passive: false });
+}
+
 function wireClickHandlers() {
   const doc = frame.contentDocument;
   SELECTABLE.forEach(({ selector }) => {
     doc.querySelectorAll(selector).forEach((el) => {
-      el.addEventListener('click', (event) => {
-        event.stopPropagation();
-        selectElement(selector);
+      attachDragAndScale(el, {
+        select: () => selectElement(selector),
+        getValues: () => (currentState.elements && currentState.elements[selector]) || DEFAULT_TRANSFORM,
+        setValues: (values) => applyAndPersistElementTransform(selector, values),
       });
-      el.style.cursor = 'pointer';
     });
   });
   for (let i = 0; i < LAYER_SLOTS; i++) {
     doc.querySelectorAll(`#Layer${i + 1}`).forEach((el) => {
-      el.addEventListener('click', (event) => {
-        event.stopPropagation();
-        selectLayer(i);
+      attachDragAndScale(el, {
+        select: () => selectLayer(i),
+        getValues: () => currentState.layers[i].transform,
+        setValues: (values) => applyAndPersistLayerTransform(i, values),
       });
-      el.style.cursor = 'pointer';
     });
   }
 }
@@ -511,16 +567,25 @@ function renderElementList() {
   });
 }
 
+// Shared by the transform-panel sliders and by dragging/scrolling an element
+// directly in the preview — both apply the same live-DOM + persist + panel-sync
+// path, so neither one can leave the sliders and iframe DOM disagreeing.
+function applyAndPersistElementTransform(selector, values) {
+  applyTransformToFrame(selector, values);
+  currentState.elements = currentState.elements || {};
+  currentState.elements[selector] = values;
+  updateWindowOverflowForFrame();
+  sendElementUpdate(selector, values);
+  if (selector === selectedSelector) {
+    elementControls.setValues(values);
+  }
+}
+
 const elementControls = createTransformControls(
   document.getElementById('element-transform-controls'), 'el',
   (values) => {
     if (!selectedSelector) return;
-    const selector = selectedSelector;
-    applyTransformToFrame(selector, values);
-    currentState.elements = currentState.elements || {};
-    currentState.elements[selector] = values;
-    updateWindowOverflowForFrame();
-    sendElementUpdate(selector, values);
+    applyAndPersistElementTransform(selectedSelector, values);
   },
 );
 
@@ -591,17 +656,26 @@ function renderLayerTabs() {
     currentState.layers.every((layer) => layer.active);
 }
 
-const layerControls = createTransformControls(
-  document.getElementById('layer-transform-controls'), 'layer',
-  (values) => {
-    if (selectedLayer === null) return;
-    const slot = selectedLayer;
-    applyTransformToFrame(`#Layer${slot + 1}`, values);
+// Shared by the transform-panel sliders and by dragging/scrolling a layer
+// directly in the preview.
+function applyAndPersistLayerTransform(slot, values) {
+  applyTransformToFrame(`#Layer${slot + 1}`, values);
+  if (currentState.layers[slot]) currentState.layers[slot].transform = values;
+  if (slot === selectedLayer) {
+    layerControls.setValues(values);
     // currentLayerPayload() reads the DOM synchronously right now (the sliders
     // already reflect `values` at this point), so this freezes slot's payload
     // immediately rather than letting a debounced callback re-read the DOM
     // 150ms later — by which point the user may have switched to another layer.
     sendLayerUpdate(slot, currentLayerPayload());
+  }
+}
+
+const layerControls = createTransformControls(
+  document.getElementById('layer-transform-controls'), 'layer',
+  (values) => {
+    if (selectedLayer === null) return;
+    applyAndPersistLayerTransform(selectedLayer, values);
   },
 );
 

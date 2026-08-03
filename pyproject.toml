@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "web-render"
-version = "0.12.0rc12"
+version = "0.12.0rc13"
 description = "Render a Flow Launcher plugin result as a screenshot"
 readme = "README.md"
 requires-python = ">=3.10"
