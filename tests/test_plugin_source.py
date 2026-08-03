@@ -5,7 +5,7 @@ from pathlib import Path
 import httpx
 import pytest
 
-from flow_render.plugin_source import resolve_plugin_source
+from flow_render.plugin_source import resolve_plugin_source, resolve_plugin_path
 
 MANIFEST_BYTES = b'{"ID": "1"}'
 MAIN_BYTES = b'print("hi")'
@@ -90,3 +90,64 @@ def test_resolve_plugin_source_downloads_from_url(tmp_path, monkeypatch):
     plugin_dir = resolve_plugin_source("https://example.com/plugin.zip", dest_dir)
 
     assert (plugin_dir / "plugin.json").read_bytes() == MANIFEST_BYTES
+
+
+def test_resolve_plugin_path_returns_existing_directory_as_is(tmp_path, monkeypatch):
+    monkeypatch.delenv("APPDATA", raising=False)
+    plugin_dir = tmp_path / "MyPlugin"
+    plugin_dir.mkdir()
+
+    assert resolve_plugin_path(str(plugin_dir)) == str(plugin_dir)
+
+
+def test_resolve_plugin_path_finds_exact_name_match_in_cwd(tmp_path, monkeypatch):
+    monkeypatch.delenv("APPDATA", raising=False)
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "Steam Search").mkdir()
+
+    assert resolve_plugin_path("Steam Search") == str((tmp_path / "Steam Search").resolve())
+
+
+def test_resolve_plugin_path_finds_versioned_folder_in_cwd(tmp_path, monkeypatch):
+    monkeypatch.delenv("APPDATA", raising=False)
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "Steam Search-1.5.0").mkdir()
+
+    assert resolve_plugin_path("Steam Search") == str(tmp_path / "Steam Search-1.5.0")
+
+
+def test_resolve_plugin_path_prefers_cwd_over_flow_launcher_dir(tmp_path, monkeypatch):
+    appdata = tmp_path / "AppData"
+    flowlauncher_plugins = appdata / "FlowLauncher" / "Plugins"
+    flowlauncher_plugins.mkdir(parents=True)
+    (flowlauncher_plugins / "Steam Search").mkdir()
+    monkeypatch.setenv("APPDATA", str(appdata))
+
+    cwd = tmp_path / "project"
+    cwd.mkdir()
+    monkeypatch.chdir(cwd)
+    (cwd / "Steam Search").mkdir()
+
+    assert resolve_plugin_path("Steam Search") == str((cwd / "Steam Search").resolve())
+
+
+def test_resolve_plugin_path_falls_back_to_flow_launcher_dir(tmp_path, monkeypatch):
+    appdata = tmp_path / "AppData"
+    flowlauncher_plugins = appdata / "FlowLauncher" / "Plugins"
+    flowlauncher_plugins.mkdir(parents=True)
+    (flowlauncher_plugins / "Steam Search-2.0.0").mkdir()
+    monkeypatch.setenv("APPDATA", str(appdata))
+
+    cwd = tmp_path / "project"
+    cwd.mkdir()
+    monkeypatch.chdir(cwd)
+
+    assert resolve_plugin_path("Steam Search") == str(flowlauncher_plugins / "Steam Search-2.0.0")
+
+
+def test_resolve_plugin_path_raises_when_nothing_matches(tmp_path, monkeypatch):
+    monkeypatch.delenv("APPDATA", raising=False)
+    monkeypatch.chdir(tmp_path)
+
+    with pytest.raises(FileNotFoundError):
+        resolve_plugin_path("Nonexistent Plugin")

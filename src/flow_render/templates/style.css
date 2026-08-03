@@ -52,6 +52,10 @@ body {
     color: rgb(150, 150, 150);
 }
 
+#QueryBoxText.no-caret::after {
+    display: none;
+}
+
 #QueryBoxText::after {
     content: ' ';
     top: 50%;

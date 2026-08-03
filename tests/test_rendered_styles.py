@@ -140,3 +140,29 @@ def test_layer_is_a_sibling_of_window_border_not_a_child(page):
         "#WindowBorder", "el => el.querySelector('#Layer1') !== null"
     )
     assert is_child is False
+
+
+def test_caret_visible_by_default(page):
+    render_page(page, "win11-dark.css")
+
+    display = page.eval_on_selector(
+        "#QueryBoxText", "el => getComputedStyle(el, '::after').display"
+    )
+    assert display != "none"
+
+
+def test_caret_hidden_when_show_caret_is_false(page):
+    config = Config(
+        keyword="pm",
+        query="steam",
+        icon="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+        css="win11-dark.css",
+        show_caret=False,
+        results=[{"title": "Steam", "subtitle": "sub", "icon": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="}],
+    )
+    page.set_content(render(config))
+
+    display = page.eval_on_selector(
+        "#QueryBoxText", "el => getComputedStyle(el, '::after').display"
+    )
+    assert display == "none"

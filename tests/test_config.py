@@ -173,6 +173,32 @@ def test_plugin_manager_config_exposes_plugin_manifest_fields(tmp_path):
     assert config.plugin["Name"] == "Test"
 
 
+def test_plugin_manager_config_respects_max_results(tmp_path):
+    manifest = {
+        "ID": "1", "ActionKeyword": "t", "Name": "Test", "Description": "A test plugin",
+        "Author": "Garulf", "Version": "1.0", "Language": "python", "Website": "",
+        "IcoPath": "icon.png", "ExecuteFileName": "main.py",
+    }
+    (tmp_path / "plugin.json").write_text(json.dumps(manifest))
+    plugin = Plugin(str(tmp_path))
+
+    config = plugin_manager_config(plugin, max_results=1)
+
+    assert config.max_results == 1
+
+
+def test_show_caret_defaults_to_true():
+    config = make_config()
+
+    assert config.show_caret is True
+
+
+def test_show_caret_can_be_disabled():
+    config = make_config(show_caret=False)
+
+    assert config.show_caret is False
+
+
 def test_plain_config_has_no_plugin_by_default():
     config = make_config()
 

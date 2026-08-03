@@ -33,7 +33,7 @@
             <div id="WindowBorder">
                 <div id="QueryBoxArea">
                     <div>
-                      <div id="QueryBoxText">{{ render_data.keyword }} {{ query }}</div>
+                      <div id="QueryBoxText" class="{{ '' if render_data.show_caret else 'no-caret' }}">{{ render_data.keyword }} {{ query }}</div>
                         <div id="QueryBoxSuggestion">{{ query_suggestion }}</div>
                         <div id="GlassIcon"><img src="{{ icon }}" width="32" height="32"></div>
                     </div>

@@ -77,7 +77,7 @@ flow-render -c ./example/config.json
 | Flag | Meaning |
 | --- | --- |
 | `-c`, `--config` | Path to a config JSON file |
-| `-p`, `--plugin` | Path to a Flow Launcher plugin directory (read via its `plugin.json`) |
+| `-p`, `--plugin` | Path to a Flow Launcher plugin directory, or just its name (see below) |
 | `-u`, `--plugin-url` | URL or local path to a plugin `.zip`; extracted to a temp dir and used like `-p` |
 | `-q`, `--query` | Query to run against the plugin |
 | `-i` | Render the plugin-manager "pm install" view for the given plugin (works with `-p` or `-u`) instead of running a query |
@@ -88,6 +88,7 @@ flow-render -c ./example/config.json
 | `-H`, `--height` | Screenshot height in px (overrides any canvas size baked into the selected theme; defaults to 720) |
 | `--print-json` | Print the resolved config as JSON to the console |
 | `--save-json` | Also save the config as JSON next to the rendered PNG in the output directory (`-o`) |
+| `--hide-caret` | Hide the blinking text caret in the query box |
 
 `-s`/`--css` names don't need the `.css` extension — `-s win11-dark` and
 `-s win11-dark.css` are equivalent.
@@ -97,6 +98,14 @@ With `-p`, the plugin's `ExecuteFileName` is invoked as a subprocess with a
 rendered rows. `-u` is mutually exclusive with `-p` — the zip is extracted to a
 temporary directory (its `plugin.json` is located automatically, even if the zip
 wraps everything in a subfolder), then handled exactly like `-p`.
+
+`-p` doesn't have to be a path: if the given value isn't an existing directory, it's
+treated as a plugin *name* — first a matching folder in the current directory is
+looked for, then (on Windows) one in Flow Launcher's own `%APPDATA%\FlowLauncher\Plugins`.
+Both searches match the folder name exactly, or a `<name>-<version>` prefix (how Flow
+Launcher itself names installed plugin folders) if that match is unambiguous. So from
+inside `%APPDATA%\FlowLauncher\Plugins`, `-p "Steam Search"` just works; from anywhere
+else, it falls back to whatever's actually installed there.
 
 With `-i`, no query is run — instead it renders the plugin-manager mockup you'd see
 after typing `pm install <name>`: query box shows `pm install {Name}`, and the single

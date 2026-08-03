@@ -23,6 +23,7 @@ class Config:
     css: Optional[Union[str, List[str]]] = None
     query_suggestion: Optional[str] = None
     plugin: Optional[dict] = None
+    show_caret: bool = True
 
     def __post_init__(self):
         if not self.query_suggestion:
@@ -111,13 +112,14 @@ def plugin_to_config(plugin: Plugin, query: str, max_results: int = 3) -> Config
     )
 
 
-def plugin_manager_config(plugin: Plugin) -> Config:
+def plugin_manager_config(plugin: Plugin, max_results: int = 3) -> Config:
     install_query = f"pm install {plugin.manifest.Name}"
     return Config(
         keyword="",
         query=install_query,
         query_suggestion=install_query,
         icon=resolve_icon(PLUGIN_MANAGER_ICON),
+        max_results=max_results,
         plugin=asdict(plugin.manifest),
         results=[
             {
