@@ -109,17 +109,25 @@ check the result.
 web-render edit -p ./plugin                       # blank starting theme
 web-render edit -p ./plugin -q "install"          # preview against a query
 web-render edit -p ./plugin -s ad-neon.css        # continue editing a theme
+web-render edit -p ./plugin -q "install" -m 5     # show up to 5 results
 ```
+
+`-m`/`--max-results` works the same as on the normal command. `-o`, `-i`, `-c`,
+`-W`, `-H` don't apply to `edit` (canvas size is set live in the editor instead
+of `-W`/`-H`).
 
 In the editor:
 - Click any element in the preview (the window, icon, a result's title, etc.)
-  to select it, then adjust its translate X/Y/Z, rotate X/Y/Z, and scale with
-  the sliders — each has a live-editable number box and a reset (↺) button.
-  Because these are shared CSS selectors, editing e.g. "Title" affects every
-  result row, not just one.
-- "3D perspective" adds a `perspective(2000px)` to that element's transform,
-  so rotateX/rotateY actually read as a 3D tilt instead of a flat mirror —
-  needed for the tilted-window look the `ad-*.css` hero themes use.
+  to select it, then adjust its translate X/Y/Z, rotate X/Y/Z, scale, and
+  perspective with the sliders — each has a live-editable number box and a
+  reset (↺) button. Because these are shared CSS selectors, editing e.g.
+  "Title" affects every result row, not just one. `.icon`, `#GlassIcon`, and
+  `.Hotkey` keep their own built-in vertical centering underneath whatever
+  you add on top.
+- "Perspective" (0 = off) is what actually gives translateZ/rotateX/rotateY
+  real 3D depth — without it, Z movement has no visible foreshortening.
+  Raise it for a stronger "pop toward the viewer" effect, needed for the
+  tilted-window look the `ad-*.css` hero themes use.
 - Transforming anything other than the window itself (an icon, a title, etc.)
   lets it visually extend past the window's edges — e.g. a large translateZ
   or scale can make an icon "float" off the window — instead of being
