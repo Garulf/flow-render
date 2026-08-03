@@ -133,7 +133,10 @@ In the editor:
   or scale can make an icon "float" off the window — instead of being
   clipped to the window's bounds.
 - "Selected result" picks which row is highlighted, for previewing the
-  selected-row styling on any of the plugin's actual results.
+  selected-row styling on any of the plugin's actual results. "Selected row"
+  in the Elements list is a separate selectable target (`.selecteditem`) for
+  transforming whichever row that is — e.g. scaling it up slightly as
+  emphasis — independently of "Result row", which affects every row.
 - The canvas (behind the window) is edited globally, not per element: choose
   exactly one of theme default, gradient (angle + two color stops), or
   transparent — a transparent canvas shows a gray/white checkerboard in the
