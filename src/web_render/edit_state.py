@@ -252,6 +252,6 @@ def apply_update(state: EditState, update: dict) -> None:
     elif kind == "element":
         state.elements[update["selector"]] = transform_from_dict(update["transform"])
     elif kind == "layer":
-        state.layers[update["slot"]] = text_layer_from_dict(update["layer"])
+        state.layers[int(update["slot"])] = text_layer_from_dict(update["layer"])
     else:
         raise ValueError(f"Unknown update type: {kind}")

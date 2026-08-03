@@ -160,7 +160,8 @@ In the editor:
   default), font size, color with its own opacity slider, weight, plus the
   same translate/rotate/scale/opacity/shadow controls as elements. The
   template stays live in the saved CSS: reusing the theme against a
-  different plugin later updates the text automatically.
+  different plugin later updates the text automatically. "🗑 Remove layer"
+  deactivates the currently selected layer, freeing its slot for reuse.
 - "Save" writes `src/web_render/static/<name>.css`, ready to use immediately
   with `-s <name>.css` on the normal (non-edit) command.
 - "📷 Capture screenshot" runs the real screenshot pipeline against whatever

@@ -116,12 +116,27 @@
         <option value="inherit">Theme default</option>
         <option value="Arial, sans-serif">Arial</option>
         <option value="'Segoe UI', sans-serif">Segoe UI</option>
+        <option value="'Segoe UI Semibold', sans-serif">Segoe UI Semibold</option>
         <option value="'Helvetica Neue', sans-serif">Helvetica Neue</option>
+        <option value="Calibri, sans-serif">Calibri</option>
+        <option value="Tahoma, sans-serif">Tahoma</option>
+        <option value="Verdana, sans-serif">Verdana</option>
+        <option value="'Century Gothic', sans-serif">Century Gothic</option>
+        <option value="'Franklin Gothic Medium', sans-serif">Franklin Gothic Medium</option>
+        <option value="'Gill Sans', sans-serif">Gill Sans</option>
+        <option value="Futura, sans-serif">Futura</option>
+        <option value="'Trebuchet MS', sans-serif">Trebuchet MS</option>
+        <option value="Bahnschrift, sans-serif">Bahnschrift</option>
         <option value="Georgia, serif">Georgia</option>
         <option value="'Times New Roman', serif">Times New Roman</option>
+        <option value="'Palatino Linotype', serif">Palatino Linotype</option>
+        <option value="Garamond, serif">Garamond</option>
+        <option value="'Book Antiqua', serif">Book Antiqua</option>
+        <option value="Rockwell, serif">Rockwell</option>
         <option value="'Courier New', monospace">Courier New</option>
-        <option value="'Trebuchet MS', sans-serif">Trebuchet MS</option>
-        <option value="Verdana, sans-serif">Verdana</option>
+        <option value="Consolas, monospace">Consolas</option>
+        <option value="'Cascadia Code', monospace">Cascadia Code</option>
+        <option value="'Lucida Console', monospace">Lucida Console</option>
         <option value="'Comic Sans MS', cursive">Comic Sans MS</option>
         <option value="Impact, sans-serif">Impact</option>
       </select>
@@ -135,6 +150,7 @@
         <option value="bold">Bold</option>
       </select>
       <div id="layer-transform-controls"></div>
+      <button id="remove-layer-btn" style="margin-top:12px">🗑 Remove layer</button>
     </div>
 
     <div id="save-row">
@@ -233,21 +249,28 @@ function debounce(fn, ms) {
 // (since a single shared timer treats "any call" as "reschedule the one timer"),
 // silently dropping A's edit — it never reaches the server, so A reverts to its
 // last-persisted value on the next reload, which looks like "changing B reset A".
+//
+// Timers/pending are keyed by String(key) since object keys are always strings,
+// but the ORIGINAL key (e.g. a numeric layer slot) is stashed alongside its args
+// and passed to `fn` on flush — Object.keys() would otherwise hand flushKey a
+// stringified key ("0" instead of 0), which a server expecting a numeric slot
+// index rejects, silently dropping the flushed edit.
 function debounceByKey(fn, ms) {
   const timers = {};
-  const pendingArgs = {};
-  const flushKey = (key) => {
-    if (!(key in timers)) return Promise.resolve();
-    clearTimeout(timers[key]);
-    delete timers[key];
-    const args = pendingArgs[key];
-    delete pendingArgs[key];
+  const pending = {};
+  const flushKey = (stringKey) => {
+    if (!(stringKey in timers)) return Promise.resolve();
+    clearTimeout(timers[stringKey]);
+    delete timers[stringKey];
+    const { key, args } = pending[stringKey];
+    delete pending[stringKey];
     return Promise.resolve(fn(key, ...args));
   };
   const debounced = (key, ...args) => {
-    pendingArgs[key] = args;
-    clearTimeout(timers[key]);
-    timers[key] = setTimeout(() => flushKey(key), ms);
+    const stringKey = String(key);
+    pending[stringKey] = { key, args };
+    clearTimeout(timers[stringKey]);
+    timers[stringKey] = setTimeout(() => flushKey(stringKey), ms);
   };
   debounced.flushAll = () => Promise.all(Object.keys(timers).map(flushKey));
   return debounced;
@@ -689,6 +712,23 @@ document.getElementById('add-layer-btn').addEventListener('click', async () => {
   await fetchState();
   renderLayerTabs();
   selectLayer(slot);
+});
+
+document.getElementById('remove-layer-btn').addEventListener('click', async () => {
+  if (selectedLayer === null) return;
+  const slot = selectedLayer;
+  selectedLayer = null;
+  document.getElementById('layer-panel').style.display = 'none';
+  await persistUpdateAndReload({
+    type: 'layer',
+    slot,
+    layer: { active: false, template: '', font_size: 32, font_family: 'inherit',
+      color: '#ffffff', color_opacity: 1, weight: 'normal',
+      transform: { ...DEFAULT_TRANSFORM },
+    },
+  });
+  await fetchState();
+  renderLayerTabs();
 });
 
 const angleRow = createSliderRow(document.getElementById('canvas-angle-row'), {
