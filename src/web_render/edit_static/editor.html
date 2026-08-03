@@ -7,7 +7,8 @@
   html, body { margin: 0; height: 100%; font-family: sans-serif; }
   #app { display: flex; height: 100%; }
   #preview-pane {
-    flex: 1; position: relative; overflow: auto;
+    flex: 1; position: relative; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
     /* Checkerboard so a transparent canvas is visibly transparent, not just "dark" —
        shows through the iframe naturally wherever its page background is transparent. */
     background-image:
@@ -19,7 +20,10 @@
     background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
     background-color: #2b2b2b;
   }
-  #preview-frame { display: block; border: 2px solid #5a7aba; box-sizing: content-box; }
+  /* Scaled to fit the pane via a CSS transform (never scrolled) — this only changes
+     the on-screen display size, not the iframe's real pixel dimensions, which stay at
+     the canvas size for accurate editing/capture. */
+  #preview-frame { display: block; border: 2px solid #5a7aba; box-sizing: content-box; flex-shrink: 0; }
   #panel { width: 340px; padding: 16px; overflow-y: auto; background: #1c1c1c; color: #eee; box-sizing: border-box; }
   #panel h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; color: #999; margin: 20px 0 8px; }
   #panel h2:first-child { margin-top: 0; }
@@ -47,6 +51,9 @@
   #save-row { margin-top: 24px; display: flex; gap: 6px; }
   #save-row input { flex: 1; }
   #save-status { font-size: 12px; color: #7dc47d; margin-top: 6px; min-height: 1em; }
+  #capture-row { margin-top: 12px; }
+  #capture-row button { width: 100%; padding: 6px; }
+  #capture-status { font-size: 12px; color: #7dc47d; margin-top: 6px; min-height: 1em; }
   #preview-error-banner { display: none; position: absolute; top: 0; left: 0; right: 0; z-index: 10;
     background: #5a1e1e; color: #ffd6d6; font-family: monospace; font-size: 12px; padding: 8px 12px;
     box-sizing: border-box; white-space: pre-wrap; border-bottom: 1px solid #a33; }
@@ -77,6 +84,9 @@
       <label>Stop 2</label>
       <input type="color" id="canvas-stop-1" value="#16213e">
     </div>
+
+    <h2>Selected result</h2>
+    <select id="selection-select"></select>
 
     <h2>Elements</h2>
     <div id="element-list"></div>
@@ -109,6 +119,11 @@
       <button id="save-btn">Save</button>
     </div>
     <div id="save-status"></div>
+
+    <div id="capture-row">
+      <button id="capture-btn">📷 Capture screenshot</button>
+    </div>
+    <div id="capture-status"></div>
   </div>
 </div>
 <script>
@@ -273,7 +288,23 @@ function wireClickHandlers() {
 function applyCanvasSize() {
   frame.style.width = `${currentState.canvas_width}px`;
   frame.style.height = `${currentState.canvas_height}px`;
+  fitCanvasToPane();
 }
+
+// Scales the iframe down (CSS transform only — never upscaled, never affects the
+// iframe's real pixel size) so the full canvas is always visible without scrolling.
+function fitCanvasToPane() {
+  const pane = document.getElementById('preview-pane');
+  const availableWidth = pane.clientWidth;
+  const availableHeight = pane.clientHeight;
+  const scale = Math.min(availableWidth / currentState.canvas_width, availableHeight / currentState.canvas_height, 1);
+  frame.style.transform = `scale(${scale})`;
+  frame.style.transformOrigin = 'center center';
+}
+
+window.addEventListener('resize', debounce(() => {
+  if (currentState) fitCanvasToPane();
+}, 100));
 
 async function fetchState() {
   const res = await fetch('/state');
@@ -564,6 +595,28 @@ document.getElementById('save-btn').addEventListener('click', async () => {
   status.textContent = `Saved to ${result.path}`;
 });
 
+document.getElementById('capture-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('capture-btn');
+  const status = document.getElementById('capture-status');
+  btn.disabled = true;
+  status.textContent = 'Capturing…';
+  try {
+    const res = await fetch('/capture', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    const result = await res.json();
+    if (!res.ok) {
+      status.textContent = `Capture failed: ${result.error}`;
+      return;
+    }
+    status.textContent = `Captured to ${result.path}`;
+  } finally {
+    btn.disabled = false;
+  }
+});
+
 function syncControlsFromState() {
   const hasGradient = !!(currentState.canvas && currentState.canvas.stops && currentState.canvas.stops.length);
   const mode = currentState.transparent ? 'transparent' : (hasGradient ? 'gradient' : 'default');
@@ -577,7 +630,32 @@ function syncControlsFromState() {
   }
   document.getElementById('canvas-width').value = currentState.canvas_width;
   document.getElementById('canvas-height').value = currentState.canvas_height;
+
+  const select = document.getElementById('selection-select');
+  select.innerHTML = '';
+  (currentState.results || []).forEach((result, index) => {
+    const option = document.createElement('option');
+    option.value = index;
+    option.textContent = result.title || `Result ${index + 1}`;
+    select.appendChild(option);
+  });
+  select.value = currentState.selection;
 }
+
+function applySelectionToFrame(index) {
+  const doc = frame.contentDocument;
+  if (!doc) return;
+  doc.querySelectorAll('.item').forEach((el, i) => {
+    el.classList.toggle('selecteditem', i === index);
+  });
+}
+
+document.getElementById('selection-select').addEventListener('change', (event) => {
+  const index = Number(event.target.value);
+  currentState.selection = index;
+  applySelectionToFrame(index);
+  persistUpdate({ type: 'selection', index });
+});
 
 (async function init() {
   await fetchState();

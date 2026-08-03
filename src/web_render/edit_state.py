@@ -92,6 +92,16 @@ def edit_state_to_css(state: EditState) -> str:
         lines.append(f"    background: {state.canvas.to_css_value()};")
         lines.append("}")
 
+    # An element inside #WindowBorder (anything but the window itself) with a
+    # non-default transform should be able to visually extend past the
+    # window's edges (e.g. translateZ "popping" an icon out) rather than
+    # being clipped by the window's own overflow: hidden.
+    if any(not transform.is_default() for selector, transform in state.elements.items()
+           if selector != "#WindowBorder"):
+        lines.append("#WindowBorder {")
+        lines.append("    overflow: visible;")
+        lines.append("}")
+
     for selector, transform in state.elements.items():
         if transform.is_default():
             continue

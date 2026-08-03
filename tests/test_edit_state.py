@@ -97,6 +97,28 @@ def test_edit_state_to_css_emits_non_default_scale():
     assert "scale(1.3)" in css
 
 
+def test_edit_state_to_css_unclips_window_when_an_inner_element_is_transformed():
+    state = EditState(elements={".icon": Transform(translate_z=100)})
+
+    css = edit_state_to_css(state)
+
+    assert "#WindowBorder {\n    overflow: visible;\n}" in css
+
+
+def test_edit_state_to_css_does_not_unclip_window_for_the_windows_own_transform():
+    state = EditState(elements={"#WindowBorder": Transform(rotate_x=45, perspective=True)})
+
+    css = edit_state_to_css(state)
+
+    assert "overflow: visible" not in css
+
+
+def test_edit_state_to_css_does_not_unclip_window_with_no_transformed_elements():
+    state = EditState()
+
+    assert "overflow: visible" not in edit_state_to_css(state)
+
+
 def test_edit_state_to_css_omits_inactive_layers():
     state = EditState(layers=[TextLayer(), TextLayer(), TextLayer(), TextLayer()])
 

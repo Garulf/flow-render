@@ -4,6 +4,7 @@ import urllib.request
 from pathlib import Path
 
 import pytest
+from PIL import Image
 
 from web_render import edit_server
 from web_render.config import Config
@@ -15,7 +16,10 @@ def make_test_config():
         query="steam",
         icon="data:image/png;base64,x",
         plugin={"Name": "Steam Search"},
-        results=[{"title": "Steam", "subtitle": "sub", "icon": "data:image/png;base64,y"}],
+        results=[
+            {"title": "Steam", "subtitle": "sub", "icon": "data:image/png;base64,y"},
+            {"title": "Steam Search", "subtitle": "sub2", "icon": "data:image/png;base64,z"},
+        ],
     )
 
 
@@ -123,9 +127,48 @@ def test_preview_does_not_duplicate_base_css_files(tmp_path, monkeypatch):
     assert body.count(b"preserve-3d") == 1
 
 
+def test_capture_writes_a_real_cropped_screenshot(server, tmp_path, monkeypatch):
+    capture_output = tmp_path / "capture-output"
+    monkeypatch.setattr(edit_server, "default_output_dir", lambda: capture_output)
+
+    status, body = request(server, "POST", "/capture", {})
+
+    assert status == 200
+    result = json.loads(body)
+    image_path = Path(result["path"])
+    assert image_path.exists()
+    assert image_path.parent == capture_output
+    with Image.open(image_path) as img:
+        assert img.width > 0 and img.height > 0
+
+
 def test_save_sanitizes_filename_to_its_stem(server, tmp_path):
     status, body = request(server, "POST", "/save", {"filename": "../../etc/passwd"})
 
     result = json.loads(body)
     saved_path = Path(result["path"])
     assert saved_path == tmp_path / "static" / "passwd.css"
+
+
+def test_get_state_includes_selection_and_results(server):
+    status, body = request(server, "GET", "/state")
+
+    assert status == 200
+    state = json.loads(body)
+    assert state["selection"] == 0
+    assert state["results"] == [
+        {"title": "Steam", "subtitle": "sub"},
+        {"title": "Steam Search", "subtitle": "sub2"},
+    ]
+
+
+def test_update_selection_is_reflected_in_state_and_preview(server):
+    status, body = request(server, "POST", "/update", {"type": "selection", "index": 1})
+
+    assert status == 204
+
+    status, body = request(server, "GET", "/state")
+    assert json.loads(body)["selection"] == 1
+
+    status, body = request(server, "GET", "/preview")
+    assert b'class="item selecteditem"' in body
