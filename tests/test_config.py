@@ -1,6 +1,6 @@
 import json
 
-from web_render.config import Config, plugin_to_config
+from web_render.config import Config, plugin_to_config, plugin_manager_config
 from web_render.plugin import Plugin
 
 
@@ -117,3 +117,40 @@ def test_plugin_to_config_caps_and_orders_results(tmp_path, monkeypatch):
     assert [r["title"] for r in config.results] == ["first"]
     assert config.keyword == "t"
     assert config.max_results == 1
+
+
+def test_plugin_to_config_exposes_plugin_manifest_fields(tmp_path, monkeypatch):
+    manifest = {
+        "ID": "1", "ActionKeyword": "t", "Name": "Test", "Description": "A test plugin",
+        "Author": "Garulf", "Version": "1.0", "Language": "python", "Website": "",
+        "IcoPath": "icon.png", "ExecuteFileName": "main.py",
+    }
+    (tmp_path / "plugin.json").write_text(json.dumps(manifest))
+    plugin = Plugin(str(tmp_path))
+    monkeypatch.setattr(Plugin, "run_plugin", lambda self, query: [])
+
+    config = plugin_to_config(plugin, "query")
+
+    assert config.plugin["Name"] == "Test"
+    assert config.plugin["Description"] == "A test plugin"
+    assert config.plugin["Author"] == "Garulf"
+
+
+def test_plugin_manager_config_exposes_plugin_manifest_fields(tmp_path):
+    manifest = {
+        "ID": "1", "ActionKeyword": "t", "Name": "Test", "Description": "A test plugin",
+        "Author": "Garulf", "Version": "1.0", "Language": "python", "Website": "",
+        "IcoPath": "icon.png", "ExecuteFileName": "main.py",
+    }
+    (tmp_path / "plugin.json").write_text(json.dumps(manifest))
+    plugin = Plugin(str(tmp_path))
+
+    config = plugin_manager_config(plugin)
+
+    assert config.plugin["Name"] == "Test"
+
+
+def test_plain_config_has_no_plugin_by_default():
+    config = make_config()
+
+    assert config.plugin is None

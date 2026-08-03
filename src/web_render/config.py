@@ -22,6 +22,7 @@ class Config:
     results: List[PluginResult] = field(default_factory=list)
     css: Optional[Union[str, List[str]]] = None
     query_suggestion: Optional[str] = None
+    plugin: Optional[dict] = None
 
     def __post_init__(self):
         if not self.query_suggestion:
@@ -86,6 +87,7 @@ def plugin_to_config(plugin: Plugin, query: str, max_results: int = 3) -> Config
         query=query,
         icon=resolve_icon(plugin.icon_path, base_path=plugin.path),
         max_results=max_results,
+        plugin=asdict(plugin.manifest),
         results=[
             {
                 "title": result["Title"],
@@ -104,6 +106,7 @@ def plugin_manager_config(plugin: Plugin) -> Config:
         query=install_query,
         query_suggestion=install_query,
         icon=resolve_icon(PLUGIN_MANAGER_ICON),
+        plugin=asdict(plugin.manifest),
         results=[
             {
                 "title": f"{plugin.manifest.Name} by {plugin.manifest.Author}",

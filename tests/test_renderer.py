@@ -89,3 +89,38 @@ def test_render_truncates_results_to_max_results(tmp_path, monkeypatch):
     html = output.read_text()
     assert "r0" in html and "r1" in html and "r2" in html
     assert "r3" not in html and "r4" not in html
+
+
+def test_render_exposes_plugin_fields_to_css_files(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "promo.css").write_text("/* {{ plugin.Name }} */")
+    config = Config(
+        keyword="pm",
+        query="steam",
+        icon="data:image/png;base64,x",
+        plugin={"Name": "Steam Search"},
+        css="promo.css",
+        results=[{"title": "Steam", "subtitle": "sub", "icon": "data:image/png;base64,y"}],
+    )
+    output = tmp_path / "out.html"
+
+    render_from_config(config, str(output))
+
+    assert "Steam Search" in output.read_text()
+
+
+def test_render_leaves_plugin_reference_blank_when_no_plugin(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "promo.css").write_text("/* [{{ plugin.Name }}] */")
+    config = Config(
+        keyword="pm",
+        query="steam",
+        icon="data:image/png;base64,x",
+        css="promo.css",
+        results=[{"title": "Steam", "subtitle": "sub", "icon": "data:image/png;base64,y"}],
+    )
+    output = tmp_path / "out.html"
+
+    render_from_config(config, str(output))
+
+    assert "[]" in output.read_text()
