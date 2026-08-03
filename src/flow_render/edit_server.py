@@ -23,7 +23,7 @@ class EditSession:
     def __init__(self, config: Config, base_css_files: list):
         self.config = config
         self.state = EditState(base_css_files=list(base_css_files))
-        self._preview_path = Path.cwd() / f".web-render-edit-preview-{os.getpid()}.css"
+        self._preview_path = Path.cwd() / f".flow-render-edit-preview-{os.getpid()}.css"
         self._last_good_html: str = ""
         self.last_error: Optional[str] = None
 
@@ -56,7 +56,7 @@ class EditSession:
         html = self.render_preview()
         output_dir = default_output_dir()
         output_dir.mkdir(parents=True, exist_ok=True)
-        with tempfile.TemporaryDirectory(prefix='web-render-edit-capture-') as build_dir:
+        with tempfile.TemporaryDirectory(prefix='flow-render-edit-capture-') as build_dir:
             html_path = Path(build_dir) / 'output.html'
             html_path.write_text(html)
             raw_image = capture_screenshot(

@@ -44,7 +44,7 @@ $skipPlaywrightInstall = $false
 
 $venvFullPath = Join-Path $workspaceRoot $venvPath
 $venvPython = Join-Path $venvFullPath "Scripts\python.exe"
-$venvExe = Join-Path $venvFullPath "Scripts\web-render.exe"
+$venvExe = Join-Path $venvFullPath "Scripts\flow-render.exe"
 $venvAlreadyExisted = Test-Path $venvPython
 
 if (-not (Test-Path $venvPython)) {
@@ -67,6 +67,6 @@ if (-not $skipPlaywrightInstall) {
 
 $resolvedCliArgs = @($args)
 
-Write-Host "Running web-render"
+Write-Host "Running flow-render"
 & $venvExe @resolvedCliArgs
 exit $LASTEXITCODE

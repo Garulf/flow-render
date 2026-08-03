@@ -1,5 +1,5 @@
-from web_render.config import Config
-from web_render.renderer import render
+from flow_render.config import Config
+from flow_render.renderer import render
 
 
 def render_with_skin(skin: str) -> str:

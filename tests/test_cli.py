@@ -4,8 +4,8 @@ from argparse import Namespace
 
 import pytest
 
-from web_render import cli
-from web_render.config import Config
+from flow_render import cli
+from flow_render.config import Config
 
 MANIFEST = {
     "ID": "1", "ActionKeyword": "t", "Name": "Test", "Description": "",
@@ -143,7 +143,7 @@ def test_get_args_parses_width_and_height_flags():
 
 def test_resolve_canvas_size_prefers_explicit_flags_over_detected(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    (tmp_path / "promo.css").write_text("/* web-render-canvas: 1080x1080 */\n")
+    (tmp_path / "promo.css").write_text("/* flow-render-canvas: 1080x1080 */\n")
     config = Config(keyword="pm", query="steam", icon="data:image/png;base64,x", css="promo.css")
     args = Namespace(width=1600, height=900)
 
@@ -152,7 +152,7 @@ def test_resolve_canvas_size_prefers_explicit_flags_over_detected(tmp_path, monk
 
 def test_resolve_canvas_size_falls_back_to_css_marker(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    (tmp_path / "promo.css").write_text("/* web-render-canvas: 1080x1080 */\n")
+    (tmp_path / "promo.css").write_text("/* flow-render-canvas: 1080x1080 */\n")
     config = Config(keyword="pm", query="steam", icon="data:image/png;base64,x", css="promo.css")
     args = Namespace(width=None, height=None)
 
@@ -170,7 +170,7 @@ def test_resolve_canvas_size_is_none_when_no_flag_or_marker(tmp_path, monkeypatc
 def test_setup_passes_resolved_canvas_size_to_main(tmp_path, monkeypatch):
     (tmp_path / "plugin.json").write_text(json.dumps(MANIFEST))
     (tmp_path / "main.py").write_text(MAIN_PY)
-    (tmp_path / "promo.css").write_text("/* web-render-canvas: 1080x1080 */\n")
+    (tmp_path / "promo.css").write_text("/* flow-render-canvas: 1080x1080 */\n")
     monkeypatch.chdir(tmp_path)
     captured = {}
     monkeypatch.setattr(cli, "main", lambda config, output_dir=None, **kwargs: captured.update(kwargs))

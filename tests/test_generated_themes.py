@@ -3,10 +3,10 @@ from pathlib import Path
 import pytest
 from playwright.sync_api import sync_playwright
 
-from web_render.config import Config
-from web_render.renderer import render
+from flow_render.config import Config
+from flow_render.renderer import render
 
-THEMES_DIR = Path(__file__).parent.parent / 'src' / 'web_render' / 'static' / 'themes'
+THEMES_DIR = Path(__file__).parent.parent / 'src' / 'flow_render' / 'static' / 'themes'
 
 
 def generated(name: str) -> str:

@@ -1,4 +1,4 @@
-from web_render.edit_state import (
+from flow_render.edit_state import (
     Transform, GradientStop, GradientState, TextLayer, EditState,
     edit_state_to_css, edit_state_to_dict, apply_update,
 )
@@ -360,7 +360,7 @@ def test_edit_state_to_css_prefixes_include_when_base_css_files_given():
 def test_edit_state_to_css_omits_canvas_size_marker_at_default_size():
     state = EditState()
 
-    assert "web-render-canvas" not in edit_state_to_css(state)
+    assert "flow-render-canvas" not in edit_state_to_css(state)
 
 
 def test_edit_state_to_css_emits_canvas_size_marker_when_non_default():
@@ -368,7 +368,7 @@ def test_edit_state_to_css_emits_canvas_size_marker_when_non_default():
 
     css = edit_state_to_css(state)
 
-    assert "/* web-render-canvas: 1600x900 */" in css
+    assert "/* flow-render-canvas: 1600x900 */" in css
 
 
 def test_edit_state_to_dict_round_trips_canvas_and_elements_and_layers():

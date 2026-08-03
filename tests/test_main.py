@@ -2,8 +2,8 @@ from pathlib import Path
 
 from PIL import Image
 
-from web_render.config import Config
-from web_render.main import default_output_dir, main
+from flow_render.config import Config
+from flow_render.main import default_output_dir, main
 
 
 def make_config() -> Config:
@@ -24,7 +24,7 @@ def fake_screenshot(tmp_path: Path) -> Path:
 def test_main_does_not_create_build_or_output_dirs_in_cwd(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     screenshot = fake_screenshot(tmp_path)
-    monkeypatch.setattr("web_render.main.capture_screenshot", lambda html_path, width=None, height=None: screenshot)
+    monkeypatch.setattr("flow_render.main.capture_screenshot", lambda html_path, width=None, height=None: screenshot)
 
     output_dir = tmp_path / "custom-output"
     main(make_config(), output_dir=output_dir)
@@ -37,10 +37,10 @@ def test_main_does_not_create_build_or_output_dirs_in_cwd(tmp_path, monkeypatch)
 def test_main_defaults_to_default_output_dir(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     screenshot = fake_screenshot(tmp_path)
-    monkeypatch.setattr("web_render.main.capture_screenshot", lambda html_path, width=None, height=None: screenshot)
+    monkeypatch.setattr("flow_render.main.capture_screenshot", lambda html_path, width=None, height=None: screenshot)
 
     fake_default = tmp_path / "fake-default-output"
-    monkeypatch.setattr("web_render.main.default_output_dir", lambda: fake_default)
+    monkeypatch.setattr("flow_render.main.default_output_dir", lambda: fake_default)
 
     main(make_config())
 
@@ -57,7 +57,7 @@ def test_main_forwards_width_and_height_to_capture_screenshot(tmp_path, monkeypa
         captured['height'] = height
         return screenshot
 
-    monkeypatch.setattr("web_render.main.capture_screenshot", fake_capture)
+    monkeypatch.setattr("flow_render.main.capture_screenshot", fake_capture)
 
     main(make_config(), output_dir=tmp_path / "custom-output", width=1600, height=900)
 
@@ -71,4 +71,4 @@ def test_default_output_dir_is_outside_cwd(tmp_path, monkeypatch):
     result = default_output_dir()
 
     assert Path.cwd() not in result.parents
-    assert "web-render" in str(result)
+    assert "flow-render" in str(result)

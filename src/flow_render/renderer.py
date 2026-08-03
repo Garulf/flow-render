@@ -10,7 +10,7 @@ DEFAULT_TEMPLATES = Path(__file__).parent / 'templates'
 STATIC_DIR = Path(__file__).parent / 'static'
 BASE_TEMPLATE = 'base.html'
 
-CANVAS_SIZE_MARKER = re.compile(r'/\*\s*web-render-canvas:\s*(\d+)x(\d+)\s*\*/')
+CANVAS_SIZE_MARKER = re.compile(r'/\*\s*flow-render-canvas:\s*(\d+)x(\d+)\s*\*/')
 
 
 def render(render_data: Config) -> str:
@@ -28,7 +28,7 @@ def render(render_data: Config) -> str:
 
 
 def detect_canvas_size(css_files) -> Optional[Tuple[int, int]]:
-    """Look for a `/* web-render-canvas: WIDTHxHEIGHT */` marker in the given
+    """Look for a `/* flow-render-canvas: WIDTHxHEIGHT */` marker in the given
     css_files (resolved the same way Jinja resolves `{% include %}`: cwd
     first, then the bundled templates/static dirs). Written by edit mode's
     Save when the canvas size differs from the default. Later files in the

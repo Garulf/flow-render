@@ -1,7 +1,7 @@
 import json
 
-from web_render.config import Config, plugin_to_config, plugin_manager_config
-from web_render.plugin import Plugin
+from flow_render.config import Config, plugin_to_config, plugin_manager_config
+from flow_render.plugin import Plugin
 
 
 def make_config(**overrides):

@@ -1,7 +1,7 @@
 import os
 
-from web_render.config import Config
-from web_render.renderer import detect_canvas_size, render_from_config
+from flow_render.config import Config
+from flow_render.renderer import detect_canvas_size, render_from_config
 
 
 def test_render_works_from_any_working_directory(tmp_path, monkeypatch):
@@ -131,7 +131,7 @@ def test_render_leaves_plugin_reference_blank_when_no_plugin(tmp_path, monkeypat
 
 def test_detect_canvas_size_finds_marker_in_a_css_file(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    (tmp_path / "promo.css").write_text("/* web-render-canvas: 1600x900 */\n")
+    (tmp_path / "promo.css").write_text("/* flow-render-canvas: 1600x900 */\n")
 
     assert detect_canvas_size(["promo.css"]) == (1600, 900)
 
@@ -149,8 +149,8 @@ def test_detect_canvas_size_returns_none_for_empty_css_files():
 
 def test_detect_canvas_size_last_matching_file_wins(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    (tmp_path / "a.css").write_text("/* web-render-canvas: 1600x900 */\n")
-    (tmp_path / "b.css").write_text("/* web-render-canvas: 1080x1080 */\n")
+    (tmp_path / "a.css").write_text("/* flow-render-canvas: 1600x900 */\n")
+    (tmp_path / "b.css").write_text("/* flow-render-canvas: 1080x1080 */\n")
 
     assert detect_canvas_size(["a.css", "b.css"]) == (1080, 1080)
 

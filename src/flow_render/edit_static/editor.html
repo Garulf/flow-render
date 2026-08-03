@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>web-render edit mode</title>
+<title>flow-render edit mode</title>
 <style>
   html, body { margin: 0; height: 100%; font-family: sans-serif; }
   #app { display: flex; height: 100%; }
@@ -222,7 +222,7 @@ const DEFAULT_TRANSFORM = {
   shadow_x: 0, shadow_y: 0, shadow_blur: 0, shadow_color: '#000000', shadow_opacity: 0,
 };
 // These selectors center themselves with `transform: translateY(-50%)` in every
-// bundled theme — must match src/web_render/edit_state.py's TRANSFORM_PRESERVE_PREFIX,
+// bundled theme — must match src/flow_render/edit_state.py's TRANSFORM_PRESERVE_PREFIX,
 // or an edit-mode transform would replace that centering instead of composing with it.
 const TRANSFORM_PRESERVE_PREFIX = {
   '#GlassIcon': 'translateY(-50%)',

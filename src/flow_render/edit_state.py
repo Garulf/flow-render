@@ -131,7 +131,7 @@ def edit_state_to_css(state: EditState) -> str:
         lines.append(f"{{% include '{base_file}' %}}")
 
     if (state.canvas_width, state.canvas_height) != (DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT):
-        lines.append(f"/* web-render-canvas: {state.canvas_width}x{state.canvas_height} */")
+        lines.append(f"/* flow-render-canvas: {state.canvas_width}x{state.canvas_height} */")
 
     if state.transparent:
         lines.append("html, body {")

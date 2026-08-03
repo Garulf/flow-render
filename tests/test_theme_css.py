@@ -1,6 +1,6 @@
 import pytest
 
-from web_render.theme_css import flatten_color, gradient_to_css, radius_to_css, thickness_to_css
+from flow_render.theme_css import flatten_color, gradient_to_css, radius_to_css, thickness_to_css
 
 
 @pytest.mark.parametrize("wpf, css", [
@@ -36,7 +36,7 @@ def test_gradient_produces_css_linear_gradient():
 
 from pathlib import Path
 
-LAYOUT_PATH = Path(__file__).parent.parent / 'src' / 'web_render' / 'theme_layout.css'
+LAYOUT_PATH = Path(__file__).parent.parent / 'src' / 'flow_render' / 'theme_layout.css'
 
 
 def test_layout_sheet_is_structural_only():
@@ -48,8 +48,8 @@ def test_layout_sheet_is_structural_only():
     assert 'background-color: #' not in content
 
 
-from web_render.theme_parser import ThemeData
-from web_render.theme_css import theme_to_css
+from flow_render.theme_parser import ThemeData
+from flow_render.theme_css import theme_to_css
 
 
 def make_resolved_theme():

@@ -6,8 +6,8 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from web_render import edit_server
-from web_render.config import Config
+from flow_render import edit_server
+from flow_render.config import Config
 
 
 def make_test_config():

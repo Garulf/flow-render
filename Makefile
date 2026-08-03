@@ -72,9 +72,9 @@ playwright: setup
 	fi
 
 run: playwright
-	@echo "Running web-render"
-	@"$(VENV)/bin/web-render" $(CLI_ARGS)
+	@echo "Running flow-render"
+	@"$(VENV)/bin/flow-render" $(CLI_ARGS)
 
 themes: setup
 	@echo "Converting Flow Launcher themes..."
-	@"$(VENV_PY)" -m web_render.convert_themes
+	@"$(VENV_PY)" -m flow_render.convert_themes

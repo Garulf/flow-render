@@ -1,8 +1,8 @@
 import pytest
 from playwright.sync_api import sync_playwright
 
-from web_render.config import Config
-from web_render.renderer import render
+from flow_render.config import Config
+from flow_render.renderer import render
 
 
 @pytest.fixture(scope="module")

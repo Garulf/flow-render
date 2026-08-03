@@ -3,7 +3,7 @@ from types import SimpleNamespace
 from PIL import Image
 from playwright.sync_api import Error as PlaywrightError
 
-from web_render.screenshot import RENDER_SCALE, _launch_chromium, capture_screenshot
+from flow_render.screenshot import RENDER_SCALE, _launch_chromium, capture_screenshot
 
 
 def test_launch_chromium_returns_browser_on_success():
@@ -28,7 +28,7 @@ def test_launch_chromium_installs_and_retries_when_executable_missing(monkeypatc
 
     installed = []
     monkeypatch.setattr(
-        "web_render.screenshot._install_chromium",
+        "flow_render.screenshot._install_chromium",
         lambda: installed.append(True),
     )
 
@@ -44,7 +44,7 @@ def test_launch_chromium_reraises_unrelated_errors(monkeypatch):
     playwright = SimpleNamespace(chromium=SimpleNamespace(launch=launch))
 
     monkeypatch.setattr(
-        "web_render.screenshot._install_chromium",
+        "flow_render.screenshot._install_chromium",
         lambda: (_ for _ in ()).throw(AssertionError("should not install for unrelated errors")),
     )
 

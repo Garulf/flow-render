@@ -1,4 +1,4 @@
-# web-render
+# flow-render
 
 Renders a Flow Launcher search-result mockup to HTML, screenshots it headlessly with
 Playwright, and crops the result to a transparent PNG — useful for generating plugin
@@ -19,9 +19,9 @@ screenshots for READMEs and store listings without staging a real launcher windo
 
 Intermediate build files live in a temp directory that's cleaned up automatically
 after each run — nothing is left behind wherever you happen to invoke the CLI from.
-The final PNG defaults to a per-user data directory (`%LOCALAPPDATA%\web-render\output`
-on Windows, `~/Library/Application Support/web-render/output` on macOS,
-`$XDG_DATA_HOME/web-render/output` or `~/.local/share/web-render/output` on Linux) and
+The final PNG defaults to a per-user data directory (`%LOCALAPPDATA%\flow-render\output`
+on Windows, `~/Library/Application Support/flow-render/output` on macOS,
+`$XDG_DATA_HOME/flow-render/output` or `~/.local/share/flow-render/output` on Linux) and
 accumulates there across runs; override it per-run with `-o`/`--output`.
 
 ## Requirements
@@ -36,7 +36,7 @@ Install as a standalone CLI with [uv](https://docs.astral.sh/uv/):
 ```bash
 uv tool install .
 playwright install chromium
-web-render -c ./example/config.json
+flow-render -c ./example/config.json
 ```
 
 ## Usage
@@ -71,7 +71,7 @@ the Chromium install needs it, then forwards all arguments to the CLI.
 ### Direct CLI
 
 ```bash
-web-render -c ./example/config.json
+flow-render -c ./example/config.json
 ```
 
 | Flag | Meaning |
@@ -100,16 +100,16 @@ result is `{Name} by {Author}` / `{Description}`, all read straight from the plu
 
 ## Edit mode
 
-`web-render edit -p ./plugin` opens a local browser tab with a live, editable
+`flow-render edit -p ./plugin` opens a local browser tab with a live, editable
 preview of the mockup — useful for building promo/hero-shot themes (the
 `ad-*.css` family) without hand-tuning CSS and re-running screenshots to
 check the result.
 
 ```bash
-web-render edit -p ./plugin                       # blank starting theme
-web-render edit -p ./plugin -q "install"          # preview against a query
-web-render edit -p ./plugin -s ad-neon.css        # continue editing a theme
-web-render edit -p ./plugin -q "install" -m 5     # show up to 5 results
+flow-render edit -p ./plugin                       # blank starting theme
+flow-render edit -p ./plugin -q "install"          # preview against a query
+flow-render edit -p ./plugin -s ad-neon.css        # continue editing a theme
+flow-render edit -p ./plugin -q "install" -m 5     # show up to 5 results
 ```
 
 `-m`/`--max-results` works the same as on the normal command. `-o`, `-i`, `-c`,
@@ -152,7 +152,7 @@ In the editor:
   per-stop ✕ button (once past 2 stops) manage
   the list. The canvas's pixel bounds are outlined in the preview. Canvas
   width/height set the actual final screenshot's pixel size (not just the
-  live preview, up to 8000px) — saved as a `/* web-render-canvas: WxH */`
+  live preview, up to 8000px) — saved as a `/* flow-render-canvas: WxH */`
   marker at the top of the theme, which the normal (non-edit) command reads
   automatically when that theme is selected with `-s`. `-W`/`-H` on the
   command line override it.
@@ -165,7 +165,7 @@ In the editor:
   template stays live in the saved CSS: reusing the theme against a
   different plugin later updates the text automatically. "🗑 Remove layer"
   deactivates the currently selected layer, freeing its slot for reuse.
-- "Save" writes `src/web_render/static/<name>.css`, ready to use immediately
+- "Save" writes `src/flow_render/static/<name>.css`, ready to use immediately
   with `-s <name>.css` on the normal (non-edit) command.
 - "📷 Capture screenshot" runs the real screenshot pipeline against whatever
   you're currently editing (saved or not) and writes it to the normal

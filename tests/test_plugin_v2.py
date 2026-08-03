@@ -2,8 +2,8 @@ import json
 
 import pytest
 
-from web_render.plugin import Plugin
-from web_render.plugin_v2 import PluginV2Error
+from flow_render.plugin import Plugin
+from flow_render.plugin_v2 import PluginV2Error
 
 FAKE_V2_PLUGIN = '''
 import json

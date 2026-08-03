@@ -11,7 +11,7 @@ from .renderer import render_from_config
 from .screenshot import capture_screenshot
 from .image import crop_to_content
 
-APP_NAME = 'web-render'
+APP_NAME = 'flow-render'
 
 
 def default_output_dir() -> Path:
@@ -30,7 +30,7 @@ def main(config: Config, output_dir: Optional[Path] = None,
     output_dir = Path(output_dir) if output_dir else default_output_dir()
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    with tempfile.TemporaryDirectory(prefix='web-render-') as build_dir:
+    with tempfile.TemporaryDirectory(prefix='flow-render-') as build_dir:
         build_path = Path(build_dir)
         config.save_to_file(str(build_path / 'config.json'))
 

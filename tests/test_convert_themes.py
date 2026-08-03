@@ -1,5 +1,5 @@
-from web_render.convert_themes import convert_file, slugify
-from web_render.theme_parser import ThemeData
+from flow_render.convert_themes import convert_file, slugify
+from flow_render.theme_parser import ThemeData
 
 DRACULA_MINIMAL = """<!--
     Name: Dracula

@@ -5,7 +5,7 @@ from pathlib import Path
 import httpx
 import pytest
 
-from web_render.plugin_source import resolve_plugin_source
+from flow_render.plugin_source import resolve_plugin_source
 
 MANIFEST_BYTES = b'{"ID": "1"}'
 MAIN_BYTES = b'print("hi")'
@@ -82,7 +82,7 @@ def test_resolve_plugin_source_downloads_from_url(tmp_path, monkeypatch):
         assert follow_redirects is True
         return httpx.Response(200, content=zip_bytes, request=httpx.Request("GET", url))
 
-    monkeypatch.setattr("web_render.plugin_source.httpx.get", fake_get)
+    monkeypatch.setattr("flow_render.plugin_source.httpx.get", fake_get)
 
     dest_dir = tmp_path / "dest"
     dest_dir.mkdir()

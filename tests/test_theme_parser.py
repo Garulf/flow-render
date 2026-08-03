@@ -1,4 +1,4 @@
-from web_render.theme_parser import parse_theme_xml
+from flow_render.theme_parser import parse_theme_xml
 
 FIXTURE = """<!--
     Name: Test Theme
@@ -78,7 +78,7 @@ def test_parses_gradient_setter_into_marker_string():
         "{Gradient 0,0|0,1|#282a36@0;#44475a@1}"
 
 
-from web_render.theme_parser import FALLBACK_RESOURCES, resolve_theme
+from flow_render.theme_parser import FALLBACK_RESOURCES, resolve_theme
 
 BASE_FIXTURE = """<ResourceDictionary
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"

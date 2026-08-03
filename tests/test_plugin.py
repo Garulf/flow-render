@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from web_render.plugin import Plugin, sort_results
+from flow_render.plugin import Plugin, sort_results
 
 
 def test_sort_results_orders_by_score_descending():
