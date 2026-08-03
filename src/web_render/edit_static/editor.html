@@ -241,6 +241,7 @@ async function loadPreview() {
   await new Promise((resolve) => { frame.onload = resolve; });
   wireClickHandlers();
   applyCanvasSize();
+  updateWindowOverflowForFrame();
   await refreshPreviewError();
 }
 
@@ -356,6 +357,9 @@ const elementControls = createTransformControls(
   (values) => {
     if (!selectedSelector) return;
     applyTransformToFrame(selectedSelector, values);
+    currentState.elements = currentState.elements || {};
+    currentState.elements[selectedSelector] = values;
+    updateWindowOverflowForFrame();
     sendElementUpdate(values);
   },
 );
@@ -365,6 +369,30 @@ function applyTransformToFrame(selector, values) {
   if (!doc) return;
   const css = transformToCss(values, TRANSFORM_PRESERVE_PREFIX[selector] || '');
   doc.querySelectorAll(selector).forEach((el) => { el.style.transform = css; });
+}
+
+function isDefaultTransformValues(t) {
+  return t.translate_x === 0 && t.translate_y === 0 && t.translate_z === 0
+    && t.rotate_x === 0 && t.rotate_y === 0 && t.rotate_z === 0
+    && t.scale === 1 && !t.perspective;
+}
+
+// Mirrors edit_state.py's server-side rule (only baked into the rendered CSS on a
+// full reload): any element other than #WindowBorder with a non-default transform
+// should let #WindowBorder's own overflow go from hidden to visible, so it can
+// visually extend past the window's edges. Since most transform edits apply
+// instantly to the live DOM without a full reload (for responsiveness), this has
+// to be applied client-side too, or the live preview stays clipped until the next
+// reload even though the saved/re-rendered CSS would be correct.
+function updateWindowOverflowForFrame() {
+  const doc = frame.contentDocument;
+  if (!doc) return;
+  const windowEl = doc.querySelector('#WindowBorder');
+  if (!windowEl) return;
+  const anyInnerTransformed = Object.entries(currentState.elements || {}).some(
+    ([selector, t]) => selector !== '#WindowBorder' && !isDefaultTransformValues(t)
+  );
+  windowEl.style.overflow = anyInnerTransformed ? 'visible' : '';
 }
 
 const sendElementUpdate = debounce((values) => {
