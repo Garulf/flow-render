@@ -239,3 +239,26 @@ def test_setup_edit_with_query_uses_plugin_to_config(tmp_path, monkeypatch):
     cli.setup(args)
 
     assert captured["config"].results[0]["title"] == "a"
+
+
+def test_setup_edit_with_plugin_url_extracts_and_dispatches(tmp_path, monkeypatch):
+    plugin_dir = tmp_path / "plugin"
+    plugin_dir.mkdir()
+    (plugin_dir / "plugin.json").write_text(json.dumps(MANIFEST))
+    (plugin_dir / "main.py").write_text(MAIN_PY)
+
+    zip_path = tmp_path / "plugin.zip"
+    with zipfile.ZipFile(zip_path, "w") as archive:
+        for file in plugin_dir.iterdir():
+            archive.write(file, file.name)
+
+    captured = {}
+    monkeypatch.setattr(cli.edit_server, "run",
+                        lambda config, base_css_files, **kw: captured.update(
+                            config=config, base_css_files=base_css_files))
+
+    args = Namespace(command="edit", plugin=None, plugin_url=str(zip_path), query=None,
+                     css=None, config=None, i=False, output=None, max_results=3)
+    cli.setup(args)
+
+    assert captured["config"].plugin["Name"] == "Test"
