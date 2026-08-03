@@ -4,7 +4,7 @@ Renders a Flow Launcher search-result mockup to HTML, screenshots it headlessly 
 Playwright, and crops the result to a transparent PNG — useful for generating plugin
 screenshots for READMEs and store listings without staging a real launcher window.
 
-![example output](example/output.png)
+![example output](example/themes/default.png)
 
 ## How it works
 
@@ -86,6 +86,11 @@ flow-render -c ./example/config.json
 | `-m`, `--max-results` | Maximum number of results to render (only applies with `-p`/`-u`; default: 3) |
 | `-W`, `--width` | Screenshot width in px (overrides any canvas size baked into the selected theme; defaults to 1280) |
 | `-H`, `--height` | Screenshot height in px (overrides any canvas size baked into the selected theme; defaults to 720) |
+| `--print-json` | Print the resolved config as JSON to the console |
+| `--save-json` | Also save the config as JSON next to the rendered PNG in the output directory (`-o`) |
+
+`-s`/`--css` names don't need the `.css` extension — `-s win11-dark` and
+`-s win11-dark.css` are equivalent.
 
 With `-p`, the plugin's `ExecuteFileName` is invoked as a subprocess with a
 `{"method": "query", "parameters": [query]}` request and its results become the
@@ -156,6 +161,12 @@ In the editor:
   marker at the top of the theme, which the normal (non-edit) command reads
   automatically when that theme is selected with `-s`. `-W`/`-H` on the
   command line override it.
+- "Window shine" overlays a gradient on top of the window's own content, for
+  faking a glossy highlight — enable it, then pick linear (with an angle) or
+  radial (with a center X/Y position), and up to 6 color stops. Unlike the
+  canvas gradient, each stop has its own opacity slider, since a shine only
+  reads as a highlight with stops that fade to fully transparent rather than
+  a solid color.
 - "+ Add layer" adds a freeform text layer (up to 4), each a sibling of the
   window rather than nested inside it, so it doesn't inherit the window's
   own rotation — with its own Jinja2 template (e.g. `{{ plugin.Name }}`),
@@ -170,6 +181,28 @@ In the editor:
 - "📷 Capture screenshot" runs the real screenshot pipeline against whatever
   you're currently editing (saved or not) and writes it to the normal
   per-user output directory — no need to save first or leave the editor.
+
+## Themes
+
+`example/config.json` rendered against the default styling, the two bundled Windows 11
+mockups, and every theme generated from the current Flow Launcher release (see
+`static/themes/` below). Regenerate these with:
+
+```bash
+uv run python scripts/generate_theme_screenshots.py
+```
+
+|  |  |  |
+| --- | --- | --- |
+| <img src="example/themes/default.png" width="280"><br><sub>Default (no theme)</sub> | <img src="example/themes/win11-dark.png" width="280"><br><sub>win11-dark.css</sub> | <img src="example/themes/win11-light.png" width="280"><br><sub>win11-light.css</sub> |
+| <img src="example/themes/blurblack.png" width="280"><br><sub>themes/blurblack.css</sub> | <img src="example/themes/blurblack-darker.png" width="280"><br><sub>themes/blurblack-darker.css</sub> | <img src="example/themes/blurwhite.png" width="280"><br><sub>themes/blurwhite.css</sub> |
+| <img src="example/themes/circle-system-dark.png" width="280"><br><sub>themes/circle-system-dark.css</sub> | <img src="example/themes/circle-system-light.png" width="280"><br><sub>themes/circle-system-light.css</sub> | <img src="example/themes/cyan-dark.png" width="280"><br><sub>themes/cyan-dark.css</sub> |
+| <img src="example/themes/darker.png" width="280"><br><sub>themes/darker.css</sub> | <img src="example/themes/darker-glass.png" width="280"><br><sub>themes/darker-glass.css</sub> | <img src="example/themes/discord-dark.png" width="280"><br><sub>themes/discord-dark.css</sub> |
+| <img src="example/themes/dracula.png" width="280"><br><sub>themes/dracula.css</sub> | <img src="example/themes/gray.png" width="280"><br><sub>themes/gray.css</sub> | <img src="example/themes/league.png" width="280"><br><sub>themes/league.css</sub> |
+| <img src="example/themes/midnight.png" width="280"><br><sub>themes/midnight.css</sub> | <img src="example/themes/nord-darker.png" width="280"><br><sub>themes/nord-darker.css</sub> | <img src="example/themes/pink.png" width="280"><br><sub>themes/pink.css</sub> |
+| <img src="example/themes/slimlight.png" width="280"><br><sub>themes/slimlight.css</sub> | <img src="example/themes/sublime.png" width="280"><br><sub>themes/sublime.css</sub> | <img src="example/themes/ubuntu.png" width="280"><br><sub>themes/ubuntu.css</sub> |
+| <img src="example/themes/win10system-dark.png" width="280"><br><sub>themes/win10system-dark.css</sub> | <img src="example/themes/win10system-light.png" width="280"><br><sub>themes/win10system-light.css</sub> | <img src="example/themes/win11light-dark.png" width="280"><br><sub>themes/win11light-dark.css</sub> |
+| <img src="example/themes/win11light-light.png" width="280"><br><sub>themes/win11light-light.css</sub> | | |
 
 ## Config format
 
@@ -197,12 +230,17 @@ See `example/config.json`:
 - `icon` accepts a data URI or a path relative to the config file — relative paths are
   resolved and inlined automatically.
 - `selection` is the index of the highlighted row.
-- `query_suggestion` is auto-filled from the selected result's title when left empty.
-- `max_results` also caps how many entries from `results` actually get rendered (any
-  beyond it are dropped from the screenshot). When `results` has more entries than
-  `max_results`, a cosmetic scrollbar thumb is drawn on the results list to suggest more
-  results exist below (this tool renders a single static screenshot, so it's a visual cue
-  only, not an actually scrollable list).
+- `query_suggestion` is auto-filled, when left empty, with the selected result's title —
+  but only if the typed `query` is a case-insensitive prefix of it. The untyped remainder
+  renders as grayed-out ghost text after the cursor (the usual autocomplete look); no
+  match means no suggestion.
+- `max_results` caps how many entries from `results` actually get rendered (any beyond
+  it are dropped from the screenshot). When `results` has more entries than
+  `max_results`, a cosmetic scrollbar thumb is drawn on the results list, sized to the
+  visible/total ratio, to suggest more results exist below (this tool renders a single
+  static screenshot, so it's a visual cue only, not an actually scrollable list). With
+  `-p`/`-u`, up to 20 of the plugin's results are kept for this purpose even though only
+  `max_results` are actually shown.
 - `css` names a stylesheet (or a list of stylesheets, e.g. `["win11-dark.css", "ad-neon.css"]`)
   to inline on top of the default `style.css`. Each is applied in order, so later
   entries win the cascade over earlier ones. Each is looked
