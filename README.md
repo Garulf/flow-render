@@ -113,17 +113,19 @@ web-render edit -p ./plugin -s ad-neon.css        # continue editing a theme
 
 In the editor:
 - Click any element in the preview (the window, icon, a result's title, etc.)
-  to select it, then adjust its translate X/Y/Z and rotate X/Y/Z with the
-  sliders — each has a live-editable number box and a reset (↺) button.
+  to select it, then adjust its translate X/Y/Z, rotate X/Y/Z, and scale with
+  the sliders — each has a live-editable number box and a reset (↺) button.
   Because these are shared CSS selectors, editing e.g. "Title" affects every
   result row, not just one.
 - "3D perspective" adds a `perspective(2000px)` to that element's transform,
   so rotateX/rotateY actually read as a 3D tilt instead of a flat mirror —
   needed for the tilted-window look the `ad-*.css` hero themes use.
-- The canvas (behind the window) is edited globally, not per element: pick
-  a gradient (angle + two color stops) or a transparent background, and set
-  the canvas width/height. This is the actual final screenshot's pixel
-  size (not just the live preview) — saved as a
+- The canvas (behind the window) is edited globally, not per element: choose
+  exactly one of theme default, gradient (angle + two color stops), or
+  transparent — a transparent canvas shows a gray/white checkerboard in the
+  editor so it reads as "transparent," not just "dark." Its pixel bounds are
+  outlined in the preview. Canvas width/height set the actual final
+  screenshot's pixel size (not just the live preview) — saved as a
   `/* web-render-canvas: WxH */` marker at the top of the theme, which the
   normal (non-edit) command reads automatically when that theme is
   selected with `-s`. `-W`/`-H` on the command line override it.
