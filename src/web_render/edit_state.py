@@ -74,6 +74,12 @@ class Transform:
 class GradientStop:
     color: str
     position: float
+    opacity: float = 1
+
+    def to_css_color(self) -> str:
+        if self.opacity == 1:
+            return self.color
+        return _hex_to_rgba(self.color, self.opacity)
 
 
 @dataclass
@@ -85,7 +91,7 @@ class GradientState:
     stops: list = field(default_factory=list)
 
     def to_css_value(self) -> str:
-        stops = ", ".join(f"{stop.color} {stop.position}%" for stop in self.stops)
+        stops = ", ".join(f"{stop.to_css_color()} {stop.position}%" for stop in self.stops)
         if self.gradient_type == "radial":
             return f"radial-gradient(circle at {self.center_x}% {self.center_y}%, {stops})"
         return f"linear-gradient({self.angle}deg, {stops})"
@@ -112,6 +118,7 @@ class EditState:
     canvas_height: int = DEFAULT_CANVAS_HEIGHT
     elements: dict = field(default_factory=dict)
     layers: list = field(default_factory=lambda: [TextLayer() for _ in range(LAYER_COUNT)])
+    window_shine: Optional[GradientState] = None
 
 
 def _escape_css_string(value: str) -> str:
@@ -133,6 +140,16 @@ def edit_state_to_css(state: EditState) -> str:
     elif state.canvas is not None and state.canvas.stops:
         lines.append("html, body {")
         lines.append(f"    background: {state.canvas.to_css_value()};")
+        lines.append("}")
+
+    # A gradient overlay painted on top of the window's own content — typically a
+    # soft, mostly-transparent band used to fake a glossy/shine highlight. It's a
+    # dedicated element (not the window's own background) so it can use
+    # transparent stops without hiding the theme underneath.
+    if state.window_shine is not None and state.window_shine.stops:
+        lines.append("#WindowShine {")
+        lines.append("    display: block;")
+        lines.append(f"    background: {state.window_shine.to_css_value()};")
         lines.append("}")
 
     # An element inside #WindowBorder (anything but the window itself) with a
@@ -193,6 +210,7 @@ def edit_state_to_dict(state: EditState) -> dict:
         "canvas_height": state.canvas_height,
         "elements": {selector: asdict(transform) for selector, transform in state.elements.items()},
         "layers": [asdict(layer) for layer in state.layers],
+        "window_shine": asdict(state.window_shine) if state.window_shine else None,
     }
 
 
@@ -223,7 +241,7 @@ def gradient_from_dict(data: Optional[dict]) -> Optional[GradientState]:
         gradient_type=data.get("gradient_type", "linear"),
         center_x=data.get("center_x", 50),
         center_y=data.get("center_y", 50),
-        stops=[GradientStop(color=stop["color"], position=stop["position"])
+        stops=[GradientStop(color=stop["color"], position=stop["position"], opacity=stop.get("opacity", 1))
                for stop in data.get("stops", [])],
     )
 
@@ -253,5 +271,7 @@ def apply_update(state: EditState, update: dict) -> None:
         state.elements[update["selector"]] = transform_from_dict(update["transform"])
     elif kind == "layer":
         state.layers[int(update["slot"])] = text_layer_from_dict(update["layer"])
+    elif kind == "window_shine":
+        state.window_shine = gradient_from_dict(update.get("window_shine"))
     else:
         raise ValueError(f"Unknown update type: {kind}")

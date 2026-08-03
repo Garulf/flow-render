@@ -25,7 +25,8 @@ def default_output_dir() -> Path:
 
 
 def main(config: Config, output_dir: Optional[Path] = None,
-         width: Optional[int] = None, height: Optional[int] = None):
+         width: Optional[int] = None, height: Optional[int] = None,
+         save_json: bool = False):
     output_dir = Path(output_dir) if output_dir else default_output_dir()
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -41,3 +42,8 @@ def main(config: Config, output_dir: Optional[Path] = None,
         final_image = crop_to_content(raw_image, output_dir / f"output_{unique_suffix}.png")
 
     print(f"Saved {final_image}")
+
+    if save_json:
+        json_path = output_dir / f"output_{unique_suffix}.json"
+        config.save_to_file(str(json_path))
+        print(f"Saved {json_path}")

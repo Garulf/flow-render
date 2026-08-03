@@ -38,7 +38,7 @@ body {
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
-    margin-left: 2px;
+    margin-left: 0;
     width: 1px;
     height: 1.2em;
 }

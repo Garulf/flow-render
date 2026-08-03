@@ -53,9 +53,10 @@
                         </div>
                     {% endfor %}
                     {% if results|length > max_results %}
-                        <div id="ResultsScrollbar"><div class="thumb"></div></div>
+                        <div id="ResultsScrollbar"><div class="thumb" style="height: {{ render_data.scrollbar_thumb_percent }}%"></div></div>
                     {% endif %}
                 </div>
+                <div id="WindowShine"></div>
         </div>
         <div id="Layer1"></div>
         <div id="Layer2"></div>

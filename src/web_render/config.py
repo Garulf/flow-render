@@ -41,12 +41,21 @@ class Config:
         return self.results[:self.max_results]
 
     @property
+    def scrollbar_thumb_percent(self) -> float:
+        if not self.results or self.max_results >= len(self.results):
+            return 100.0
+        return max(10.0, self.max_results / len(self.results) * 100)
+
+    @property
     def suggested_query(self) -> str:
-        if not self.results:
+        if not self.query or not self.results:
             return ""
-        if self.query.lower() in self.selected_result["title"].lower():
-            return self.full_query
-        return ""
+        title = self.selected_result["title"]
+        if not title.lower().startswith(self.query.lower()):
+            return ""
+        if self.keyword:
+            return f"{self.keyword} {title}"
+        return title
 
     @property
     def full_query(self) -> str:
@@ -80,6 +89,9 @@ class Config:
             json.dump(self.as_dict(), f, indent=4)
 
 
+MAX_STORED_RESULTS = 20
+
+
 def plugin_to_config(plugin: Plugin, query: str, max_results: int = 3) -> Config:
     results = plugin.run_plugin(query)
     return Config(
@@ -94,7 +106,7 @@ def plugin_to_config(plugin: Plugin, query: str, max_results: int = 3) -> Config
                 "subtitle": result["SubTitle"],
                 "icon": resolve_icon(result["IcoPath"], base_path=plugin.path)
             }
-            for result in results[:max_results]
+            for result in results[:MAX_STORED_RESULTS]
         ]
     )
 

@@ -55,7 +55,7 @@ body {
 #QueryBoxText::after {
     content: ' ';
     top: 50%;
-    margin-left: 2px;
+    margin-left: 0;
     transform: translateY(-50%);
     font-size: 28px;
     color: #000;
@@ -89,18 +89,24 @@ body {
     position: absolute;
     top: 2px;
     bottom: 2px;
-    right: 6px;
-    width: 4px;
+    right: 0;
+    width: 5px;
 }
 
 #ResultsScrollbar .thumb {
     position: absolute;
     top: 0;
     right: 0;
-    width: 4px;
-    height: 40%;
+    width: 5px;
     border-radius: 2px;
     background-color: rgba(128, 128, 128, 0.45);
+}
+
+#WindowShine {
+    display: none;
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
 }
 
 #Layer1, #Layer2, #Layer3, #Layer4 {

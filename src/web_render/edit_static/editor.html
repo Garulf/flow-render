@@ -92,6 +92,23 @@
       <button type="button" id="canvas-add-stop-btn">+ Add color stop</button>
     </div>
 
+    <h2>Window shine</h2>
+    <label class="checkbox-label"><input type="checkbox" id="shine-enabled"> Enable</label>
+    <div id="shine-controls" style="display:none">
+      <label>Gradient type</label>
+      <select id="shine-gradient-type">
+        <option value="linear">Linear</option>
+        <option value="radial">Radial</option>
+      </select>
+      <div id="shine-angle-row"></div>
+      <div id="shine-position-row" style="display:none">
+        <div id="shine-center-x-row"></div>
+        <div id="shine-center-y-row"></div>
+      </div>
+      <div id="shine-stops"></div>
+      <button type="button" id="shine-add-stop-btn">+ Add color stop</button>
+    </div>
+
     <h2>Selected result</h2>
     <select id="selection-select"></select>
 
@@ -552,6 +569,7 @@ async function flushPendingUpdates() {
     sendLayerTemplateUpdate.flushAll(),
     sendCanvasUpdate.flush(),
     sendCanvasSizeUpdate.flush(),
+    sendShineUpdate.flush(),
   ]);
 }
 
@@ -953,6 +971,155 @@ function applyAndSendCanvasUpdate() {
   sendCanvasUpdate();
 }
 
+// A gradient overlay painted on top of #WindowBorder's own content, for faking a
+// glossy/shine highlight. Mirrors the canvas gradient controls above, but stops
+// carry their own opacity (a plain <input type=color> can't express alpha) since
+// a shine gradient is only useful with transparent-to-visible-to-transparent stops.
+const shineAngleRow = createSliderRow(document.getElementById('shine-angle-row'), {
+  id: 'shine-angle', label: 'Angle (deg)', min: 0, max: 360, value: 120,
+  onChange: () => applyAndSendShineUpdate(),
+});
+const shineCenterXRow = createSliderRow(document.getElementById('shine-center-x-row'), {
+  id: 'shine-center-x', label: 'Center X (%)', min: 0, max: 100, value: 50, reset: 50,
+  onChange: () => applyAndSendShineUpdate(),
+});
+const shineCenterYRow = createSliderRow(document.getElementById('shine-center-y-row'), {
+  id: 'shine-center-y', label: 'Center Y (%)', min: 0, max: 100, value: 50, reset: 50,
+  onChange: () => applyAndSendShineUpdate(),
+});
+
+function updateShineTypeControlsVisibility() {
+  const isRadial = document.getElementById('shine-gradient-type').value === 'radial';
+  document.getElementById('shine-angle-row').style.display = isRadial ? 'none' : 'block';
+  document.getElementById('shine-position-row').style.display = isRadial ? 'block' : 'none';
+}
+
+let shineStops = [
+  { color: '#ffffff', position: 30, opacity: 0 },
+  { color: '#ffffff', position: 50, opacity: 0.35 },
+  { color: '#ffffff', position: 70, opacity: 0 },
+];
+
+function renderShineStops() {
+  const container = document.getElementById('shine-stops');
+  container.innerHTML = '';
+  shineStops.forEach((stop, index) => {
+    const row = document.createElement('div');
+    row.className = 'slider-row';
+    const label = document.createElement('label');
+    label.textContent = `Stop ${index + 1}`;
+    const controls = document.createElement('div');
+    controls.className = 'slider-controls';
+
+    const color = document.createElement('input');
+    color.type = 'color';
+    color.value = stop.color;
+    color.addEventListener('input', () => {
+      shineStops[index].color = color.value;
+      applyAndSendShineUpdate();
+    });
+
+    const position = document.createElement('input');
+    position.type = 'number';
+    position.min = 0; position.max = 100;
+    position.value = stop.position;
+    position.title = 'Position (%)';
+    position.addEventListener('input', () => {
+      shineStops[index].position = Number(position.value) || 0;
+      applyAndSendShineUpdate();
+    });
+
+    const opacity = document.createElement('input');
+    opacity.type = 'number';
+    opacity.min = 0; opacity.max = 1; opacity.step = 0.05;
+    opacity.value = stop.opacity;
+    opacity.title = 'Opacity';
+    opacity.addEventListener('input', () => {
+      shineStops[index].opacity = Math.min(1, Math.max(0, Number(opacity.value)));
+      applyAndSendShineUpdate();
+    });
+
+    controls.append(color, position, opacity);
+    if (shineStops.length > 2) {
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.textContent = '✕';
+      removeBtn.title = 'Remove stop';
+      removeBtn.className = 'reset-btn';
+      removeBtn.addEventListener('click', () => {
+        shineStops.splice(index, 1);
+        renderShineStops();
+        applyAndSendShineUpdate();
+      });
+      controls.append(removeBtn);
+    }
+    row.append(label, controls);
+    container.appendChild(row);
+  });
+  document.getElementById('shine-add-stop-btn').disabled = shineStops.length >= MAX_GRADIENT_STOPS;
+}
+
+document.getElementById('shine-add-stop-btn').addEventListener('click', () => {
+  if (shineStops.length >= MAX_GRADIENT_STOPS) return;
+  const last = shineStops[shineStops.length - 1];
+  shineStops.push({ color: '#ffffff', position: Math.min(100, last.position + 10), opacity: 0.35 });
+  renderShineStops();
+  applyAndSendShineUpdate();
+});
+
+document.getElementById('shine-gradient-type').addEventListener('change', () => {
+  updateShineTypeControlsVisibility();
+  applyAndSendShineUpdate();
+});
+
+document.getElementById('shine-enabled').addEventListener('change', () => {
+  document.getElementById('shine-controls').style.display =
+    document.getElementById('shine-enabled').checked ? 'block' : 'none';
+  applyAndSendShineUpdate();
+});
+
+renderShineStops();
+
+function currentShineGradientCss() {
+  const stopsCss = shineStops.map((s) => `${hexToRgba(s.color, s.opacity)} ${s.position}%`).join(', ');
+  if (document.getElementById('shine-gradient-type').value === 'radial') {
+    const centerX = Number(document.getElementById('shine-center-x-num').value) || 0;
+    const centerY = Number(document.getElementById('shine-center-y-num').value) || 0;
+    return `radial-gradient(circle at ${centerX}% ${centerY}%, ${stopsCss})`;
+  }
+  const angle = Number(document.getElementById('shine-angle-num').value) || 0;
+  return `linear-gradient(${angle}deg, ${stopsCss})`;
+}
+
+function applyShineToFrame() {
+  const doc = frame.contentDocument;
+  if (!doc) return;
+  const el = doc.getElementById('WindowShine');
+  if (!el) return;
+  const enabled = document.getElementById('shine-enabled').checked;
+  el.style.display = enabled ? 'block' : 'none';
+  el.style.background = enabled ? currentShineGradientCss() : '';
+}
+
+const sendShineUpdate = debounce(() => {
+  const enabled = document.getElementById('shine-enabled').checked;
+  persistUpdate({
+    type: 'window_shine',
+    window_shine: enabled ? {
+      angle: Number(document.getElementById('shine-angle-num').value) || 0,
+      gradient_type: document.getElementById('shine-gradient-type').value,
+      center_x: Number(document.getElementById('shine-center-x-num').value) || 0,
+      center_y: Number(document.getElementById('shine-center-y-num').value) || 0,
+      stops: shineStops.map((s) => ({ color: s.color, position: s.position, opacity: s.opacity })),
+    } : null,
+  });
+}, 150);
+
+function applyAndSendShineUpdate() {
+  applyShineToFrame();
+  sendShineUpdate();
+}
+
 document.querySelectorAll('input[name="canvas-mode"]').forEach((radio) => {
   radio.addEventListener('change', () => {
     updateCanvasControlsVisibility();
@@ -1033,6 +1200,23 @@ function syncControlsFromState() {
   }
   document.getElementById('canvas-width').value = currentState.canvas_width;
   document.getElementById('canvas-height').value = currentState.canvas_height;
+
+  const shineEnabled = !!(currentState.window_shine && currentState.window_shine.stops
+    && currentState.window_shine.stops.length);
+  document.getElementById('shine-enabled').checked = shineEnabled;
+  document.getElementById('shine-controls').style.display = shineEnabled ? 'block' : 'none';
+  if (currentState.window_shine) {
+    shineAngleRow.setValue(currentState.window_shine.angle);
+    shineCenterXRow.setValue(currentState.window_shine.center_x === undefined ? 50 : currentState.window_shine.center_x);
+    shineCenterYRow.setValue(currentState.window_shine.center_y === undefined ? 50 : currentState.window_shine.center_y);
+    document.getElementById('shine-gradient-type').value = currentState.window_shine.gradient_type || 'linear';
+    updateShineTypeControlsVisibility();
+    const stops = currentState.window_shine.stops || [];
+    if (stops.length) {
+      shineStops = stops.map((s) => ({ color: s.color, position: s.position, opacity: s.opacity === undefined ? 1 : s.opacity }));
+      renderShineStops();
+    }
+  }
 
   const select = document.getElementById('selection-select');
   select.innerHTML = '';

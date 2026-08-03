@@ -20,7 +20,7 @@ def make_config(**overrides):
 def test_suggested_query_completes_matching_result_title():
     config = make_config()
 
-    assert config.query_suggestion == "pm steam"
+    assert config.query_suggestion == "pm Steam Search"
 
 
 def test_suggested_query_empty_when_query_not_in_title():
@@ -99,7 +99,10 @@ def test_visible_results_returns_all_when_under_capacity():
     assert config.visible_results == config.results
 
 
-def test_plugin_to_config_caps_and_orders_results(tmp_path, monkeypatch):
+def test_plugin_to_config_keeps_full_result_list_for_scrollbar(tmp_path, monkeypatch):
+    # config.results must retain more than max_results so the scrollbar (which
+    # triggers on `results|length > max_results`) can ever appear for real
+    # plugin output — visible_results is what actually gets rendered.
     manifest = {
         "ID": "1", "ActionKeyword": "t", "Name": "Test", "Description": "",
         "Author": "", "Version": "1.0", "Language": "python", "Website": "",
@@ -114,9 +117,29 @@ def test_plugin_to_config_caps_and_orders_results(tmp_path, monkeypatch):
 
     config = plugin_to_config(plugin, "query", max_results=1)
 
-    assert [r["title"] for r in config.results] == ["first"]
+    assert [r["title"] for r in config.results] == ["first", "second"]
+    assert [r["title"] for r in config.visible_results] == ["first"]
     assert config.keyword == "t"
     assert config.max_results == 1
+
+
+def test_plugin_to_config_caps_stored_results_at_twenty(tmp_path, monkeypatch):
+    manifest = {
+        "ID": "1", "ActionKeyword": "t", "Name": "Test", "Description": "",
+        "Author": "", "Version": "1.0", "Language": "python", "Website": "",
+        "IcoPath": "icon.png", "ExecuteFileName": "main.py",
+    }
+    (tmp_path / "plugin.json").write_text(json.dumps(manifest))
+    plugin = Plugin(str(tmp_path))
+    monkeypatch.setattr(Plugin, "run_plugin", lambda self, query: [
+        {"Title": str(i), "SubTitle": "", "IcoPath": "data:image/png;base64,a", "Score": 100 - i}
+        for i in range(30)
+    ])
+
+    config = plugin_to_config(plugin, "query", max_results=3)
+
+    assert len(config.results) == 20
+    assert len(config.visible_results) == 3
 
 
 def test_plugin_to_config_exposes_plugin_manifest_fields(tmp_path, monkeypatch):
