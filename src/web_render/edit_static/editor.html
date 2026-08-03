@@ -6,7 +6,7 @@
 <style>
   html, body { margin: 0; height: 100%; font-family: sans-serif; }
   #app { display: flex; height: 100%; }
-  #preview-pane { flex: 1; background: #111; }
+  #preview-pane { flex: 1; background: #111; position: relative; }
   #preview-frame { width: 100%; height: 100%; border: 0; }
   #panel { width: 320px; padding: 16px; overflow-y: auto; background: #1c1c1c; color: #eee; box-sizing: border-box; }
   #panel h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; color: #999; margin: 20px 0 8px; }
@@ -25,11 +25,17 @@
   #save-row { margin-top: 24px; display: flex; gap: 6px; }
   #save-row input { flex: 1; }
   #save-status { font-size: 12px; color: #7dc47d; margin-top: 6px; min-height: 1em; }
+  #preview-error-banner { display: none; position: absolute; top: 0; left: 0; right: 0; z-index: 10;
+    background: #5a1e1e; color: #ffd6d6; font-family: monospace; font-size: 12px; padding: 8px 12px;
+    box-sizing: border-box; white-space: pre-wrap; border-bottom: 1px solid #a33; }
 </style>
 </head>
 <body>
 <div id="app">
-  <div id="preview-pane"><iframe id="preview-frame"></iframe></div>
+  <div id="preview-pane">
+    <div id="preview-error-banner"></div>
+    <iframe id="preview-frame"></iframe>
+  </div>
   <div id="panel">
     <h2>Canvas background</h2>
     <label>Angle (deg)</label>
@@ -112,12 +118,12 @@ const frame = document.getElementById('preview-frame');
 let currentState = null;
 let selectedSelector = null;
 let selectedLayer = null;
-let updateTimer = null;
 
 function debounce(fn, ms) {
+  let timer = null;
   return (...args) => {
-    clearTimeout(updateTimer);
-    updateTimer = setTimeout(() => fn(...args), ms);
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), ms);
   };
 }
 
@@ -127,6 +133,24 @@ async function loadPreview() {
   frame.srcdoc = html;
   await new Promise((resolve) => { frame.onload = resolve; });
   wireClickHandlers();
+  await refreshPreviewError();
+}
+
+async function refreshPreviewError() {
+  const banner = document.getElementById('preview-error-banner');
+  try {
+    const res = await fetch('/preview-error');
+    const result = await res.json();
+    if (result.error) {
+      banner.textContent = result.error;
+      banner.style.display = 'block';
+    } else {
+      banner.style.display = 'none';
+      banner.textContent = '';
+    }
+  } catch (err) {
+    console.error('Failed to fetch preview error state', err);
+  }
 }
 
 function wireClickHandlers() {
@@ -158,11 +182,22 @@ async function fetchState() {
 }
 
 async function postUpdate(payload) {
-  await fetch('/update', {
+  const res = await fetch('/update', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
+  if (!res.ok) {
+    const status = document.getElementById('save-status');
+    try {
+      const result = await res.json();
+      status.textContent = `Update failed: ${result.error}`;
+      console.error('Update failed:', result.error);
+    } catch (err) {
+      status.textContent = 'Update failed.';
+      console.error('Update failed with unparseable response', err);
+    }
+  }
   await loadPreview();
 }
 
@@ -331,6 +366,10 @@ document.getElementById('save-btn').addEventListener('click', async () => {
     body: JSON.stringify({ filename }),
   });
   const result = await res.json();
+  if (!res.ok) {
+    status.textContent = `Save failed: ${result.error}`;
+    return;
+  }
   status.textContent = `Saved to ${result.path}`;
 });
 

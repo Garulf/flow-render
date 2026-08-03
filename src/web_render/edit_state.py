@@ -75,6 +75,11 @@ def edit_state_to_css(state: EditState) -> str:
         lines.append(f"    background: {state.canvas.to_css_value()};")
         lines.append("}")
 
+    if any(layer.active for layer in state.layers):
+        lines.append("#WindowBorder {")
+        lines.append("    overflow: visible;")
+        lines.append("}")
+
     for selector, transform in state.elements.items():
         if transform.is_default():
             continue

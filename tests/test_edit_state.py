@@ -70,6 +70,24 @@ def test_edit_state_to_css_omits_inactive_layers():
     assert edit_state_to_css(state) == ""
 
 
+def test_edit_state_to_css_does_not_unclip_window_border_with_no_active_layers():
+    state = EditState(layers=[TextLayer(), TextLayer(), TextLayer(), TextLayer()])
+
+    assert "overflow: visible" not in edit_state_to_css(state)
+
+
+def test_edit_state_to_css_unclips_window_border_when_a_layer_is_active():
+    state = EditState(layers=[
+        TextLayer(active=True, template="{{ plugin.Name }}"),
+        TextLayer(), TextLayer(), TextLayer(),
+    ])
+
+    css = edit_state_to_css(state)
+
+    assert "#WindowBorder {" in css
+    assert "overflow: visible;" in css
+
+
 def test_edit_state_to_css_emits_active_layer_with_live_jinja_template():
     state = EditState(layers=[
         TextLayer(active=True, template="{{ plugin.Name }}", font_size=40, color="#fff", weight="bold"),
