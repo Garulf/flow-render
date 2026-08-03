@@ -96,6 +96,33 @@ after typing `pm install <name>`: query box shows `pm install {Name}`, and the s
 result is `{Name} by {Author}` / `{Description}`, all read straight from the plugin's
 `plugin.json`.
 
+## Edit mode
+
+`web-render edit -p ./plugin` opens a local browser tab with a live, editable
+preview of the mockup — useful for building promo/hero-shot themes (the
+`ad-*.css` family) without hand-tuning CSS and re-running screenshots to
+check the result.
+
+```bash
+web-render edit -p ./plugin                       # blank starting theme
+web-render edit -p ./plugin -q "install"          # preview against a query
+web-render edit -p ./plugin -s ad-neon.css        # continue editing a theme
+```
+
+In the editor:
+- Click any element in the preview (the window, icon, a result's title, etc.)
+  to select it, then adjust its translate X/Y/Z and rotate X/Y/Z with the
+  sliders. Because these are shared CSS selectors, editing e.g. "Title"
+  affects every result row, not just one.
+- The canvas background gradient (behind the window) is edited globally, not
+  per element.
+- "+ Add layer" adds a freeform text layer (up to 4) with its own Jinja2
+  template — e.g. `{{ plugin.Name }}` — plus translate/rotate/font
+  controls. The template stays live in the saved CSS: reusing the theme
+  against a different plugin later updates the text automatically.
+- "Save" writes `src/web_render/static/<name>.css`, ready to use immediately
+  with `-s <name>.css` on the normal (non-edit) command.
+
 ## Config format
 
 See `example/config.json`:
