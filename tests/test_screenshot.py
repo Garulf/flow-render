@@ -1,8 +1,9 @@
 from types import SimpleNamespace
 
+from PIL import Image
 from playwright.sync_api import Error as PlaywrightError
 
-from web_render.screenshot import _launch_chromium
+from web_render.screenshot import RENDER_SCALE, _launch_chromium, capture_screenshot
 
 
 def test_launch_chromium_returns_browser_on_success():
@@ -52,3 +53,23 @@ def test_launch_chromium_reraises_unrelated_errors(monkeypatch):
         assert False, "expected PlaywrightError"
     except PlaywrightError as error:
         assert "Some other failure" in str(error)
+
+
+def test_capture_screenshot_uses_requested_viewport_size(tmp_path):
+    html_path = tmp_path / "page.html"
+    html_path.write_text("<html><body style='margin:0;background:red;width:100%;height:100%'></body></html>")
+
+    image_path = capture_screenshot(str(html_path), width=400, height=300)
+
+    with Image.open(image_path) as img:
+        assert img.size == (400 * RENDER_SCALE, 300 * RENDER_SCALE)
+
+
+def test_capture_screenshot_uses_default_viewport_when_no_size_given(tmp_path):
+    html_path = tmp_path / "page.html"
+    html_path.write_text("<html><body style='margin:0;background:red;width:100%;height:100%'></body></html>")
+
+    image_path = capture_screenshot(str(html_path))
+
+    with Image.open(image_path) as img:
+        assert img.size == (1280 * RENDER_SCALE, 720 * RENDER_SCALE)

@@ -24,7 +24,7 @@ def fake_screenshot(tmp_path: Path) -> Path:
 def test_main_does_not_create_build_or_output_dirs_in_cwd(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     screenshot = fake_screenshot(tmp_path)
-    monkeypatch.setattr("web_render.main.capture_screenshot", lambda html_path: screenshot)
+    monkeypatch.setattr("web_render.main.capture_screenshot", lambda html_path, width=None, height=None: screenshot)
 
     output_dir = tmp_path / "custom-output"
     main(make_config(), output_dir=output_dir)
@@ -37,7 +37,7 @@ def test_main_does_not_create_build_or_output_dirs_in_cwd(tmp_path, monkeypatch)
 def test_main_defaults_to_default_output_dir(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     screenshot = fake_screenshot(tmp_path)
-    monkeypatch.setattr("web_render.main.capture_screenshot", lambda html_path: screenshot)
+    monkeypatch.setattr("web_render.main.capture_screenshot", lambda html_path, width=None, height=None: screenshot)
 
     fake_default = tmp_path / "fake-default-output"
     monkeypatch.setattr("web_render.main.default_output_dir", lambda: fake_default)
@@ -45,6 +45,24 @@ def test_main_defaults_to_default_output_dir(tmp_path, monkeypatch):
     main(make_config())
 
     assert list(fake_default.glob("output_*.png"))
+
+
+def test_main_forwards_width_and_height_to_capture_screenshot(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    screenshot = fake_screenshot(tmp_path)
+    captured = {}
+
+    def fake_capture(html_path, width=None, height=None):
+        captured['width'] = width
+        captured['height'] = height
+        return screenshot
+
+    monkeypatch.setattr("web_render.main.capture_screenshot", fake_capture)
+
+    main(make_config(), output_dir=tmp_path / "custom-output", width=1600, height=900)
+
+    assert captured['width'] == 1600
+    assert captured['height'] == 900
 
 
 def test_default_output_dir_is_outside_cwd(tmp_path, monkeypatch):

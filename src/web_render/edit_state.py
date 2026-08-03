@@ -3,6 +3,8 @@ from typing import Optional
 
 LAYER_SELECTORS = ["#Layer1", "#Layer2", "#Layer3", "#Layer4"]
 LAYER_COUNT = len(LAYER_SELECTORS)
+DEFAULT_CANVAS_WIDTH = 1280
+DEFAULT_CANVAS_HEIGHT = 720
 
 
 @dataclass
@@ -61,8 +63,8 @@ class EditState:
     base_css_files: list = field(default_factory=list)
     canvas: Optional[GradientState] = None
     transparent: bool = False
-    canvas_width: int = 1280
-    canvas_height: int = 720
+    canvas_width: int = DEFAULT_CANVAS_WIDTH
+    canvas_height: int = DEFAULT_CANVAS_HEIGHT
     elements: dict = field(default_factory=dict)
     layers: list = field(default_factory=lambda: [TextLayer() for _ in range(LAYER_COUNT)])
 
@@ -75,6 +77,9 @@ def edit_state_to_css(state: EditState) -> str:
     lines = []
     for base_file in state.base_css_files:
         lines.append(f"{{% include '{base_file}' %}}")
+
+    if (state.canvas_width, state.canvas_height) != (DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT):
+        lines.append(f"/* web-render-canvas: {state.canvas_width}x{state.canvas_height} */")
 
     if state.transparent:
         lines.append("html, body {")

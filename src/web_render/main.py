@@ -24,7 +24,8 @@ def default_output_dir() -> Path:
     return Path(base) / APP_NAME / 'output'
 
 
-def main(config: Config, output_dir: Optional[Path] = None):
+def main(config: Config, output_dir: Optional[Path] = None,
+         width: Optional[int] = None, height: Optional[int] = None):
     output_dir = Path(output_dir) if output_dir else default_output_dir()
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -35,7 +36,7 @@ def main(config: Config, output_dir: Optional[Path] = None):
         html_path = build_path / 'output.html'
         render_from_config(config, str(html_path))
 
-        raw_image = capture_screenshot(str(html_path))
+        raw_image = capture_screenshot(str(html_path), width=width, height=height)
         unique_suffix = f"{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}_{uuid4().hex[:8]}"
         final_image = crop_to_content(raw_image, output_dir / f"output_{unique_suffix}.png")
 

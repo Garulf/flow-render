@@ -8,6 +8,7 @@ from . import edit_server
 from .config import Config, plugin_manager_config, plugin_to_config
 from .plugin import Plugin
 from .plugin_source import resolve_plugin_source
+from .renderer import detect_canvas_size
 from .main import main
 
 
@@ -26,6 +27,8 @@ def get_args(seq: Sequence[str]) -> Namespace:
     parser.add_argument('-i', action='store_true', help="Use plugin manager")
     parser.add_argument('-o', '--output', help="Directory to save the rendered PNG in (defaults to a per-user data directory)")
     parser.add_argument('-m', '--max-results', type=int, default=3, help="Maximum number of results to render (only applies with -p/-u; default: 3)")
+    parser.add_argument('-W', '--width', type=int, help="Screenshot width in px (defaults to the css theme's canvas size, if any, else 1280)")
+    parser.add_argument('-H', '--height', type=int, help="Screenshot height in px (defaults to the css theme's canvas size, if any, else 720)")
 
     subparsers = parser.add_subparsers(dest='command')
     edit_parser = subparsers.add_parser(
@@ -75,13 +78,25 @@ def run_edit(args: Namespace) -> None:
     edit_server.run(config, args.css or [])
 
 
+def resolve_canvas_size(config: Config, args: Namespace):
+    width, height = args.width, args.height
+    if width and height:
+        return width, height
+    detected = detect_canvas_size(config.css_files)
+    if detected:
+        return width or detected[0], height or detected[1]
+    return width, height
+
+
 def setup(args: Namespace):
     if args.command == 'edit':
         run_edit(args)
         return
     if not args.config and not args.plugin and not args.plugin_url:
         sys.exit("Provide a config file (-c), a plugin path (-p), or a plugin zip (-u). See --help.")
-    main(build_config(args), args.output)
+    config = build_config(args)
+    width, height = resolve_canvas_size(config, args)
+    main(config, args.output, width=width, height=height)
 
 
 def run():

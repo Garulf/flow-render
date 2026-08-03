@@ -21,7 +21,7 @@ MAIN_PY = (
 
 
 def test_setup_without_config_or_plugin_exits_with_usage_error():
-    args = Namespace(config=None, plugin=None, plugin_url=None, query=None, i=False, css=None, output=None, max_results=3, command=None)
+    args = Namespace(config=None, plugin=None, plugin_url=None, query=None, i=False, css=None, output=None, max_results=3, command=None, width=None, height=None)
 
     with pytest.raises(SystemExit):
         cli.setup(args)
@@ -31,9 +31,9 @@ def test_setup_with_plugin_builds_config_and_renders(tmp_path, monkeypatch):
     (tmp_path / "plugin.json").write_text(json.dumps(MANIFEST))
     (tmp_path / "main.py").write_text(MAIN_PY)
     rendered = {}
-    monkeypatch.setattr(cli, "main", lambda config, output_dir=None: rendered.update(config=config, output_dir=output_dir))
+    monkeypatch.setattr(cli, "main", lambda config, output_dir=None, **kwargs: rendered.update(config=config, output_dir=output_dir))
 
-    cli.setup(Namespace(config=None, plugin=str(tmp_path), plugin_url=None, query="q", i=False, css=None, output=None, max_results=3, command=None))
+    cli.setup(Namespace(config=None, plugin=str(tmp_path), plugin_url=None, query="q", i=False, css=None, output=None, max_results=3, command=None, width=None, height=None))
 
     assert isinstance(rendered["config"], Config)
     assert rendered["config"].results[0]["title"] == "a"
@@ -51,9 +51,9 @@ def test_setup_with_plugin_url_builds_config_and_renders(tmp_path, monkeypatch):
             archive.write(file, file.name)
 
     rendered = {}
-    monkeypatch.setattr(cli, "main", lambda config, output_dir=None: rendered.update(config=config, output_dir=output_dir))
+    monkeypatch.setattr(cli, "main", lambda config, output_dir=None, **kwargs: rendered.update(config=config, output_dir=output_dir))
 
-    cli.setup(Namespace(config=None, plugin=None, plugin_url=str(zip_path), query="q", i=False, css=None, output=None, max_results=3, command=None))
+    cli.setup(Namespace(config=None, plugin=None, plugin_url=str(zip_path), query="q", i=False, css=None, output=None, max_results=3, command=None, width=None, height=None))
 
     assert isinstance(rendered["config"], Config)
     assert rendered["config"].results[0]["title"] == "a"
@@ -63,9 +63,9 @@ def test_setup_with_css_sets_config_css(tmp_path, monkeypatch):
     (tmp_path / "plugin.json").write_text(json.dumps(MANIFEST))
     (tmp_path / "main.py").write_text(MAIN_PY)
     rendered = {}
-    monkeypatch.setattr(cli, "main", lambda config, output_dir=None: rendered.update(config=config, output_dir=output_dir))
+    monkeypatch.setattr(cli, "main", lambda config, output_dir=None, **kwargs: rendered.update(config=config, output_dir=output_dir))
 
-    cli.setup(Namespace(config=None, plugin=str(tmp_path), plugin_url=None, query="q", i=False, css=["win11-dark.css"], output=None, max_results=3, command=None))
+    cli.setup(Namespace(config=None, plugin=str(tmp_path), plugin_url=None, query="q", i=False, css=["win11-dark.css"], output=None, max_results=3, command=None, width=None, height=None))
 
     assert rendered["config"].css == "win11-dark.css"
 
@@ -74,9 +74,9 @@ def test_setup_with_multiple_css_sets_config_css_list(tmp_path, monkeypatch):
     (tmp_path / "plugin.json").write_text(json.dumps(MANIFEST))
     (tmp_path / "main.py").write_text(MAIN_PY)
     rendered = {}
-    monkeypatch.setattr(cli, "main", lambda config, output_dir=None: rendered.update(config=config, output_dir=output_dir))
+    monkeypatch.setattr(cli, "main", lambda config, output_dir=None, **kwargs: rendered.update(config=config, output_dir=output_dir))
 
-    cli.setup(Namespace(config=None, plugin=str(tmp_path), plugin_url=None, query="q", i=False, css=["win11-dark.css", "ad-neon.css"], output=None, max_results=3, command=None))
+    cli.setup(Namespace(config=None, plugin=str(tmp_path), plugin_url=None, query="q", i=False, css=["win11-dark.css", "ad-neon.css"], output=None, max_results=3, command=None, width=None, height=None))
 
     assert rendered["config"].css == ["win11-dark.css", "ad-neon.css"]
 
@@ -85,9 +85,9 @@ def test_setup_passes_output_flag_through_to_main(tmp_path, monkeypatch):
     (tmp_path / "plugin.json").write_text(json.dumps(MANIFEST))
     (tmp_path / "main.py").write_text(MAIN_PY)
     rendered = {}
-    monkeypatch.setattr(cli, "main", lambda config, output_dir=None: rendered.update(config=config, output_dir=output_dir))
+    monkeypatch.setattr(cli, "main", lambda config, output_dir=None, **kwargs: rendered.update(config=config, output_dir=output_dir))
 
-    cli.setup(Namespace(config=None, plugin=str(tmp_path), plugin_url=None, query="q", i=False, css=None, output="/tmp/somewhere", max_results=3, command=None))
+    cli.setup(Namespace(config=None, plugin=str(tmp_path), plugin_url=None, query="q", i=False, css=None, output="/tmp/somewhere", max_results=3, command=None, width=None, height=None))
 
     assert rendered["output_dir"] == "/tmp/somewhere"
 
@@ -127,6 +127,61 @@ def test_get_args_parses_max_results_flag():
     assert args.max_results == 5
 
 
+def test_get_args_width_and_height_default_to_none():
+    args = cli.get_args(["-p", "./plugin"])
+
+    assert args.width is None
+    assert args.height is None
+
+
+def test_get_args_parses_width_and_height_flags():
+    args = cli.get_args(["-p", "./plugin", "-W", "1600", "-H", "900"])
+
+    assert args.width == 1600
+    assert args.height == 900
+
+
+def test_resolve_canvas_size_prefers_explicit_flags_over_detected(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "promo.css").write_text("/* web-render-canvas: 1080x1080 */\n")
+    config = Config(keyword="pm", query="steam", icon="data:image/png;base64,x", css="promo.css")
+    args = Namespace(width=1600, height=900)
+
+    assert cli.resolve_canvas_size(config, args) == (1600, 900)
+
+
+def test_resolve_canvas_size_falls_back_to_css_marker(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "promo.css").write_text("/* web-render-canvas: 1080x1080 */\n")
+    config = Config(keyword="pm", query="steam", icon="data:image/png;base64,x", css="promo.css")
+    args = Namespace(width=None, height=None)
+
+    assert cli.resolve_canvas_size(config, args) == (1080, 1080)
+
+
+def test_resolve_canvas_size_is_none_when_no_flag_or_marker(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    config = Config(keyword="pm", query="steam", icon="data:image/png;base64,x")
+    args = Namespace(width=None, height=None)
+
+    assert cli.resolve_canvas_size(config, args) == (None, None)
+
+
+def test_setup_passes_resolved_canvas_size_to_main(tmp_path, monkeypatch):
+    (tmp_path / "plugin.json").write_text(json.dumps(MANIFEST))
+    (tmp_path / "main.py").write_text(MAIN_PY)
+    (tmp_path / "promo.css").write_text("/* web-render-canvas: 1080x1080 */\n")
+    monkeypatch.chdir(tmp_path)
+    captured = {}
+    monkeypatch.setattr(cli, "main", lambda config, output_dir=None, **kwargs: captured.update(kwargs))
+
+    cli.setup(Namespace(config=None, plugin=str(tmp_path), plugin_url=None, query="q", i=False,
+                        css="promo.css", output=None, max_results=3, command=None, width=None, height=None))
+
+    assert captured["width"] == 1080
+    assert captured["height"] == 1080
+
+
 def test_setup_with_max_results_caps_config_results(tmp_path, monkeypatch):
     (tmp_path / "plugin.json").write_text(json.dumps(MANIFEST))
     (tmp_path / "main.py").write_text(
@@ -138,9 +193,9 @@ def test_setup_with_max_results_caps_config_results(tmp_path, monkeypatch):
         ']}))\n'
     )
     rendered = {}
-    monkeypatch.setattr(cli, "main", lambda config, output_dir=None: rendered.update(config=config, output_dir=output_dir))
+    monkeypatch.setattr(cli, "main", lambda config, output_dir=None, **kwargs: rendered.update(config=config, output_dir=output_dir))
 
-    cli.setup(Namespace(config=None, plugin=str(tmp_path), plugin_url=None, query="q", i=False, css=None, output=None, max_results=2, command=None))
+    cli.setup(Namespace(config=None, plugin=str(tmp_path), plugin_url=None, query="q", i=False, css=None, output=None, max_results=2, command=None, width=None, height=None))
 
     assert [r["title"] for r in rendered["config"].results] == ["a", "b"]
 
@@ -156,9 +211,9 @@ def test_setup_with_plugin_and_i_renders_plugin_manager_view(tmp_path, monkeypat
     (tmp_path / "plugin.json").write_text(json.dumps(PLUGIN_MANAGER_MANIFEST))
     (tmp_path / "main.py").write_text(MAIN_PY)
     rendered = {}
-    monkeypatch.setattr(cli, "main", lambda config, output_dir=None: rendered.update(config=config))
+    monkeypatch.setattr(cli, "main", lambda config, output_dir=None, **kwargs: rendered.update(config=config))
 
-    cli.setup(Namespace(config=None, plugin=str(tmp_path), plugin_url=None, query=None, i=True, css=None, output=None, max_results=3, command=None))
+    cli.setup(Namespace(config=None, plugin=str(tmp_path), plugin_url=None, query=None, i=True, css=None, output=None, max_results=3, command=None, width=None, height=None))
 
     config = rendered["config"]
     assert config.query == "pm install Steam Search"
@@ -178,9 +233,9 @@ def test_setup_with_plugin_url_and_i_renders_plugin_manager_view(tmp_path, monke
             archive.write(file, file.name)
 
     rendered = {}
-    monkeypatch.setattr(cli, "main", lambda config, output_dir=None: rendered.update(config=config))
+    monkeypatch.setattr(cli, "main", lambda config, output_dir=None, **kwargs: rendered.update(config=config))
 
-    cli.setup(Namespace(config=None, plugin=None, plugin_url=str(zip_path), query=None, i=True, css=None, output=None, max_results=3, command=None))
+    cli.setup(Namespace(config=None, plugin=None, plugin_url=str(zip_path), query=None, i=True, css=None, output=None, max_results=3, command=None, width=None, height=None))
 
     config = rendered["config"]
     assert config.query == "pm install Steam Search"
