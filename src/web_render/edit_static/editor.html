@@ -168,12 +168,29 @@ let currentState = null;
 let selectedSelector = null;
 let selectedLayer = null;
 
+// Debounced functions also expose .flush()/.flushAll(), which cancel any pending
+// timer and run the call immediately, returning a promise for it. Without this,
+// anything that needs the server to be fully up to date *right now* (a full
+// reload, Capture, Save) could run while an edit is still sitting in a debounce
+// window — reading stale state and looking like the edit "didn't happen" or a
+// screenshot "didn't match" what was just changed in the live preview.
 function debounce(fn, ms) {
   let timer = null;
-  return (...args) => {
+  let pendingArgs = null;
+  const debounced = (...args) => {
+    pendingArgs = args;
     clearTimeout(timer);
-    timer = setTimeout(() => fn(...args), ms);
+    timer = setTimeout(() => debounced.flush(), ms);
   };
+  debounced.flush = () => {
+    if (timer === null) return Promise.resolve();
+    clearTimeout(timer);
+    timer = null;
+    const args = pendingArgs;
+    pendingArgs = null;
+    return Promise.resolve(fn(...args));
+  };
+  return debounced;
 }
 
 // Like debounce(), but keeps one independent timer per `key` instead of a single
@@ -184,10 +201,22 @@ function debounce(fn, ms) {
 // last-persisted value on the next reload, which looks like "changing B reset A".
 function debounceByKey(fn, ms) {
   const timers = {};
-  return (key, ...args) => {
+  const pendingArgs = {};
+  const flushKey = (key) => {
+    if (!(key in timers)) return Promise.resolve();
     clearTimeout(timers[key]);
-    timers[key] = setTimeout(() => fn(key, ...args), ms);
+    delete timers[key];
+    const args = pendingArgs[key];
+    delete pendingArgs[key];
+    return Promise.resolve(fn(key, ...args));
   };
+  const debounced = (key, ...args) => {
+    pendingArgs[key] = args;
+    clearTimeout(timers[key]);
+    timers[key] = setTimeout(() => flushKey(key), ms);
+  };
+  debounced.flushAll = () => Promise.all(Object.keys(timers).map(flushKey));
+  return debounced;
 }
 
 function transformToCss(t, preservePrefix = '') {
@@ -350,8 +379,23 @@ async function persistUpdate(payload) {
 // Persists a change AND reloads the full preview — needed only when the server has to
 // re-render (Jinja2 template text resolution, or making a brand-new element visible).
 async function persistUpdateAndReload(payload) {
+  await flushPendingUpdates();
   await persistUpdate(payload);
   await loadPreview();
+}
+
+// Forces every still-pending debounced send (any element, any layer's transform,
+// a layer's template text, the canvas) to fire immediately and awaits them, so
+// whatever runs next (a full reload, Save, Capture) sees fully up-to-date state
+// instead of racing an edit that hasn't reached the server yet.
+async function flushPendingUpdates() {
+  await Promise.all([
+    sendElementUpdate.flushAll(),
+    sendLayerUpdate.flushAll(),
+    sendLayerTemplateUpdate.flushAll(),
+    sendCanvasUpdate.flush(),
+    sendCanvasSizeUpdate.flush(),
+  ]);
 }
 
 function renderElementList() {
@@ -533,6 +577,7 @@ function selectLayer(index) {
 }
 
 document.getElementById('add-layer-btn').addEventListener('click', async () => {
+  await flushPendingUpdates();
   await fetchState();
   const slot = currentState.layers.findIndex((layer) => !layer.active);
   if (slot === -1) return;
@@ -632,6 +677,7 @@ document.getElementById('save-btn').addEventListener('click', async () => {
     status.textContent = 'Enter a filename first.';
     return;
   }
+  await flushPendingUpdates();
   const res = await fetch('/save', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -651,6 +697,7 @@ document.getElementById('capture-btn').addEventListener('click', async () => {
   btn.disabled = true;
   status.textContent = 'Capturing…';
   try {
+    await flushPendingUpdates();
     const res = await fetch('/capture', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
