@@ -13,12 +13,25 @@ def test_transform_is_not_default_when_any_field_set():
     assert not Transform(rotate_z=90).is_default()
 
 
+def test_transform_is_not_default_when_perspective_enabled():
+    assert not Transform(perspective=True).is_default()
+
+
 def test_transform_to_css_value():
     transform = Transform(translate_x=10, translate_y=-5, translate_z=0,
                           rotate_x=0, rotate_y=45, rotate_z=0)
 
     assert transform.to_css_value() == (
         "translate3d(10px, -5px, 0px) rotateX(0deg) rotateY(45deg) rotateZ(0deg)"
+    )
+
+
+def test_transform_to_css_value_prefixes_perspective_when_enabled():
+    transform = Transform(rotate_x=45, rotate_y=-45, perspective=True)
+
+    assert transform.to_css_value() == (
+        "perspective(2000px) translate3d(0px, 0px, 0px) "
+        "rotateX(45deg) rotateY(-45deg) rotateZ(0deg)"
     )
 
 
@@ -70,22 +83,25 @@ def test_edit_state_to_css_omits_inactive_layers():
     assert edit_state_to_css(state) == ""
 
 
-def test_edit_state_to_css_does_not_unclip_window_border_with_no_active_layers():
-    state = EditState(layers=[TextLayer(), TextLayer(), TextLayer(), TextLayer()])
-
-    assert "overflow: visible" not in edit_state_to_css(state)
-
-
-def test_edit_state_to_css_unclips_window_border_when_a_layer_is_active():
-    state = EditState(layers=[
-        TextLayer(active=True, template="{{ plugin.Name }}"),
-        TextLayer(), TextLayer(), TextLayer(),
-    ])
+def test_edit_state_to_css_emits_transparent_canvas():
+    state = EditState(transparent=True)
 
     css = edit_state_to_css(state)
 
-    assert "#WindowBorder {" in css
-    assert "overflow: visible;" in css
+    assert "html, body {" in css
+    assert "background: transparent;" in css
+
+
+def test_edit_state_to_css_transparent_takes_precedence_over_gradient():
+    state = EditState(transparent=True, canvas=GradientState(stops=[
+        GradientStop(color="#000", position=0),
+        GradientStop(color="#fff", position=100),
+    ]))
+
+    css = edit_state_to_css(state)
+
+    assert "background: transparent;" in css
+    assert "linear-gradient" not in css
 
 
 def test_edit_state_to_css_emits_active_layer_with_live_jinja_template():
@@ -103,6 +119,24 @@ def test_edit_state_to_css_emits_active_layer_with_live_jinja_template():
     assert "font-size: 40px;" in css
     assert "color: #fff;" in css
     assert "font-weight: bold;" in css
+
+
+def test_edit_state_to_css_puts_layer_font_styles_on_host_not_pseudo_element():
+    state = EditState(layers=[
+        TextLayer(active=True, template="hi", font_size=40, color="#fff", weight="bold"),
+        TextLayer(), TextLayer(), TextLayer(),
+    ])
+
+    css = edit_state_to_css(state)
+    host_block = css.split("#Layer1 {", 1)[1].split("}", 1)[0]
+    before_block = css.split("#Layer1::before {", 1)[1].split("}", 1)[0]
+
+    assert "font-size: 40px;" in host_block
+    assert "color: #fff;" in host_block
+    assert "font-weight: bold;" in host_block
+    assert "font-size" not in before_block
+    assert "color" not in before_block
+    assert "font-weight" not in before_block
 
 
 def test_edit_state_to_css_escapes_quotes_in_template_text():
@@ -145,6 +179,16 @@ def test_edit_state_to_dict_round_trips_canvas_and_elements_and_layers():
     assert "base_css_files" not in data
 
 
+def test_edit_state_to_dict_includes_transparent_and_canvas_size():
+    state = EditState(transparent=True, canvas_width=1600, canvas_height=900)
+
+    data = edit_state_to_dict(state)
+
+    assert data["transparent"] is True
+    assert data["canvas_width"] == 1600
+    assert data["canvas_height"] == 900
+
+
 def test_apply_update_sets_canvas():
     state = EditState()
 
@@ -155,6 +199,38 @@ def test_apply_update_sets_canvas():
 
     assert state.canvas.angle == 90
     assert state.canvas.stops[0].color == "#000"
+    assert state.transparent is False
+
+
+def test_apply_update_canvas_clears_gradient_when_transparent_enabled():
+    state = EditState(canvas=GradientState(stops=[GradientStop(color="#000", position=0)]))
+
+    apply_update(state, {"type": "canvas", "canvas": None, "transparent": True})
+
+    assert state.canvas is None
+    assert state.transparent is True
+
+
+def test_apply_update_sets_canvas_size():
+    state = EditState()
+
+    apply_update(state, {"type": "canvas_size", "width": 1600, "height": 900})
+
+    assert state.canvas_width == 1600
+    assert state.canvas_height == 900
+
+
+def test_apply_update_sets_element_transform_with_perspective():
+    state = EditState()
+
+    apply_update(state, {
+        "type": "element",
+        "selector": "#WindowBorder",
+        "transform": {"translate_x": 0, "translate_y": 0, "translate_z": 0,
+                      "rotate_x": 45, "rotate_y": -45, "rotate_z": 0, "perspective": True},
+    })
+
+    assert state.elements["#WindowBorder"].perspective is True
 
 
 def test_apply_update_sets_element_transform():

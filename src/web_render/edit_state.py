@@ -13,16 +13,19 @@ class Transform:
     rotate_x: float = 0
     rotate_y: float = 0
     rotate_z: float = 0
+    perspective: bool = False
 
     def is_default(self) -> bool:
         return not any([
             self.translate_x, self.translate_y, self.translate_z,
             self.rotate_x, self.rotate_y, self.rotate_z,
+            self.perspective,
         ])
 
     def to_css_value(self) -> str:
+        prefix = "perspective(2000px) " if self.perspective else ""
         return (
-            f"translate3d({self.translate_x}px, {self.translate_y}px, {self.translate_z}px) "
+            f"{prefix}translate3d({self.translate_x}px, {self.translate_y}px, {self.translate_z}px) "
             f"rotateX({self.rotate_x}deg) rotateY({self.rotate_y}deg) rotateZ({self.rotate_z}deg)"
         )
 
@@ -57,6 +60,9 @@ class TextLayer:
 class EditState:
     base_css_files: list = field(default_factory=list)
     canvas: Optional[GradientState] = None
+    transparent: bool = False
+    canvas_width: int = 1280
+    canvas_height: int = 720
     elements: dict = field(default_factory=dict)
     layers: list = field(default_factory=lambda: [TextLayer() for _ in range(LAYER_COUNT)])
 
@@ -70,14 +76,13 @@ def edit_state_to_css(state: EditState) -> str:
     for base_file in state.base_css_files:
         lines.append(f"{{% include '{base_file}' %}}")
 
-    if state.canvas is not None and state.canvas.stops:
+    if state.transparent:
+        lines.append("html, body {")
+        lines.append("    background: transparent;")
+        lines.append("}")
+    elif state.canvas is not None and state.canvas.stops:
         lines.append("html, body {")
         lines.append(f"    background: {state.canvas.to_css_value()};")
-        lines.append("}")
-
-    if any(layer.active for layer in state.layers):
-        lines.append("#WindowBorder {")
-        lines.append("    overflow: visible;")
         lines.append("}")
 
     for selector, transform in state.elements.items():
@@ -95,12 +100,16 @@ def edit_state_to_css(state: EditState) -> str:
         lines.append("    display: block;")
         if not layer.transform.is_default():
             lines.append(f"    transform: {layer.transform.to_css_value()};")
-        lines.append("}")
-        lines.append(f"{selector}::before {{")
-        lines.append(f'    content: "{_escape_css_string(layer.template)}";')
+        # font-size/color/font-weight live on the host element (not ::before)
+        # so they're inherited by the pseudo-element's text content — this
+        # lets a JS client restyle them by setting the host's inline style,
+        # with no need to re-render the page for a font/color tweak.
         lines.append(f"    font-size: {layer.font_size}px;")
         lines.append(f"    color: {layer.color};")
         lines.append(f"    font-weight: {layer.weight};")
+        lines.append("}")
+        lines.append(f"{selector}::before {{")
+        lines.append(f'    content: "{_escape_css_string(layer.template)}";')
         lines.append("}")
 
     if not lines:
@@ -111,6 +120,9 @@ def edit_state_to_css(state: EditState) -> str:
 def edit_state_to_dict(state: EditState) -> dict:
     return {
         "canvas": asdict(state.canvas) if state.canvas else None,
+        "transparent": state.transparent,
+        "canvas_width": state.canvas_width,
+        "canvas_height": state.canvas_height,
         "elements": {selector: asdict(transform) for selector, transform in state.elements.items()},
         "layers": [asdict(layer) for layer in state.layers],
     }
@@ -124,6 +136,7 @@ def transform_from_dict(data: dict) -> Transform:
         rotate_x=data.get("rotate_x", 0),
         rotate_y=data.get("rotate_y", 0),
         rotate_z=data.get("rotate_z", 0),
+        perspective=data.get("perspective", False),
     )
 
 
@@ -151,7 +164,11 @@ def text_layer_from_dict(data: dict) -> TextLayer:
 def apply_update(state: EditState, update: dict) -> None:
     kind = update["type"]
     if kind == "canvas":
-        state.canvas = gradient_from_dict(update["canvas"])
+        state.canvas = gradient_from_dict(update.get("canvas"))
+        state.transparent = update.get("transparent", False)
+    elif kind == "canvas_size":
+        state.canvas_width = update["width"]
+        state.canvas_height = update["height"]
     elif kind == "element":
         state.elements[update["selector"]] = transform_from_dict(update["transform"])
     elif kind == "layer":

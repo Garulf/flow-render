@@ -6,16 +6,26 @@
 <style>
   html, body { margin: 0; height: 100%; font-family: sans-serif; }
   #app { display: flex; height: 100%; }
-  #preview-pane { flex: 1; background: #111; position: relative; }
-  #preview-frame { width: 100%; height: 100%; border: 0; }
-  #panel { width: 320px; padding: 16px; overflow-y: auto; background: #1c1c1c; color: #eee; box-sizing: border-box; }
+  #preview-pane { flex: 1; background: #111; position: relative; overflow: auto; }
+  #preview-frame { border: 0; display: block; }
+  #panel { width: 340px; padding: 16px; overflow-y: auto; background: #1c1c1c; color: #eee; box-sizing: border-box; }
   #panel h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; color: #999; margin: 20px 0 8px; }
   #panel h2:first-child { margin-top: 0; }
   #panel label { display: block; font-size: 12px; margin: 8px 0 2px; }
-  #panel input[type=range] { width: 100%; }
   #panel input[type=color], #panel input[type=text], #panel select, #panel textarea {
     width: 100%; box-sizing: border-box; margin-bottom: 4px;
   }
+  .checkbox-label { display: flex; align-items: center; gap: 6px; font-size: 12px; margin: 6px 0; }
+  .checkbox-label input { margin: 0; }
+  .slider-row { margin: 8px 0; }
+  .slider-controls { display: flex; align-items: center; gap: 6px; }
+  .slider-controls input[type=range] { flex: 1; }
+  .slider-controls input[type=number] { width: 64px; box-sizing: border-box; }
+  .reset-btn { background: #2a2a2a; color: #eee; border: 1px solid #3a3a3a; border-radius: 4px;
+    cursor: pointer; padding: 2px 6px; font-size: 12px; line-height: 1; }
+  .reset-btn:hover { background: #3a3a3a; }
+  .size-row { display: flex; gap: 8px; align-items: center; }
+  .size-row input[type=number] { width: 80px; box-sizing: border-box; }
   .element-btn { display: block; width: 100%; text-align: left; padding: 6px 8px; margin: 2px 0;
     background: #2a2a2a; color: #eee; border: 1px solid #3a3a3a; border-radius: 4px; cursor: pointer; }
   .element-btn.selected { background: #3a5a8a; border-color: #5a7aba; }
@@ -37,31 +47,28 @@
     <iframe id="preview-frame"></iframe>
   </div>
   <div id="panel">
-    <h2>Canvas background</h2>
-    <label>Angle (deg)</label>
-    <input type="range" id="canvas-angle" min="0" max="360" value="180">
-    <label>Stop 1</label>
-    <input type="color" id="canvas-stop-0" value="#1a1a2e">
-    <label>Stop 2</label>
-    <input type="color" id="canvas-stop-1" value="#16213e">
+    <h2>Canvas</h2>
+    <div class="size-row">
+      <label style="margin:0">Width <input type="number" id="canvas-width" min="200" max="4000" value="1280"></label>
+      <label style="margin:0">Height <input type="number" id="canvas-height" min="200" max="4000" value="720"></label>
+    </div>
+
+    <label class="checkbox-label"><input type="checkbox" id="canvas-gradient-enabled"> Gradient background</label>
+    <label class="checkbox-label"><input type="checkbox" id="canvas-transparent"> Transparent canvas</label>
+    <div id="canvas-gradient-controls">
+      <div id="canvas-angle-row"></div>
+      <label>Stop 1</label>
+      <input type="color" id="canvas-stop-0" value="#1a1a2e">
+      <label>Stop 2</label>
+      <input type="color" id="canvas-stop-1" value="#16213e">
+    </div>
 
     <h2>Elements</h2>
     <div id="element-list"></div>
 
     <div id="element-panel" style="display:none">
       <h2 id="element-panel-title">Element</h2>
-      <label>Translate X (px)</label>
-      <input type="range" id="tx" min="-400" max="400" value="0">
-      <label>Translate Y (px)</label>
-      <input type="range" id="ty" min="-400" max="400" value="0">
-      <label>Translate Z (px)</label>
-      <input type="range" id="tz" min="-400" max="400" value="0">
-      <label>Rotate X (deg)</label>
-      <input type="range" id="rx" min="-180" max="180" value="0">
-      <label>Rotate Y (deg)</label>
-      <input type="range" id="ry" min="-180" max="180" value="0">
-      <label>Rotate Z (deg)</label>
-      <input type="range" id="rz" min="-180" max="180" value="0">
+      <div id="element-transform-controls"></div>
     </div>
 
     <h2>Text layers</h2>
@@ -79,18 +86,7 @@
         <option value="normal">Normal</option>
         <option value="bold">Bold</option>
       </select>
-      <label>Translate X (px)</label>
-      <input type="range" id="layer-tx" min="-400" max="400" value="0">
-      <label>Translate Y (px)</label>
-      <input type="range" id="layer-ty" min="-400" max="400" value="0">
-      <label>Translate Z (px)</label>
-      <input type="range" id="layer-tz" min="-400" max="400" value="0">
-      <label>Rotate X (deg)</label>
-      <input type="range" id="layer-rx" min="-180" max="180" value="0">
-      <label>Rotate Y (deg)</label>
-      <input type="range" id="layer-ry" min="-180" max="180" value="0">
-      <label>Rotate Z (deg)</label>
-      <input type="range" id="layer-rz" min="-180" max="180" value="0">
+      <div id="layer-transform-controls"></div>
     </div>
 
     <div id="save-row">
@@ -113,6 +109,18 @@ const SELECTABLE = [
   { label: 'Hotkey', selector: '.Hotkey' },
 ];
 const LAYER_SLOTS = 4;
+const AXES = [
+  { key: 'translate_x', label: 'Translate X (px)', min: -400, max: 400 },
+  { key: 'translate_y', label: 'Translate Y (px)', min: -400, max: 400 },
+  { key: 'translate_z', label: 'Translate Z (px)', min: -400, max: 400 },
+  { key: 'rotate_x', label: 'Rotate X (deg)', min: -180, max: 180 },
+  { key: 'rotate_y', label: 'Rotate Y (deg)', min: -180, max: 180 },
+  { key: 'rotate_z', label: 'Rotate Z (deg)', min: -180, max: 180 },
+];
+const DEFAULT_TRANSFORM = {
+  translate_x: 0, translate_y: 0, translate_z: 0,
+  rotate_x: 0, rotate_y: 0, rotate_z: 0, perspective: false,
+};
 
 const frame = document.getElementById('preview-frame');
 let currentState = null;
@@ -127,12 +135,82 @@ function debounce(fn, ms) {
   };
 }
 
+function transformToCss(t) {
+  const prefix = t.perspective ? 'perspective(2000px) ' : '';
+  return `${prefix}translate3d(${t.translate_x}px, ${t.translate_y}px, ${t.translate_z}px) `
+    + `rotateX(${t.rotate_x}deg) rotateY(${t.rotate_y}deg) rotateZ(${t.rotate_z}deg)`;
+}
+
+// A single slider + live number box + reset button, wired to call onChange(value) on any interaction.
+function createSliderRow(container, { id, label, min, max, value = 0, onChange }) {
+  const row = document.createElement('div');
+  row.className = 'slider-row';
+  const labelEl = document.createElement('label');
+  labelEl.textContent = label;
+  const controls = document.createElement('div');
+  controls.className = 'slider-controls';
+
+  const range = document.createElement('input');
+  range.type = 'range'; range.min = min; range.max = max; range.value = value; range.id = `${id}-range`;
+  const num = document.createElement('input');
+  num.type = 'number'; num.min = min; num.max = max; num.value = value; num.id = `${id}-num`;
+  const reset = document.createElement('button');
+  reset.type = 'button'; reset.textContent = '↺'; reset.title = 'Reset'; reset.className = 'reset-btn';
+
+  const set = (v) => { range.value = v; num.value = v; onChange(Number(v)); };
+  range.addEventListener('input', () => set(range.value));
+  num.addEventListener('input', () => set(num.value === '' ? 0 : num.value));
+  reset.addEventListener('click', () => set(0));
+
+  controls.append(range, num, reset);
+  row.append(labelEl, controls);
+  container.appendChild(row);
+  return { setValue: (v) => { range.value = v; num.value = v; } };
+}
+
+// Builds the 6 translate/rotate sliders + a perspective checkbox into `container`.
+// onChange(values) fires with the full {translate_x..rotate_z, perspective} object on any edit.
+function createTransformControls(container, prefix, onChange) {
+  container.innerHTML = '';
+  const rows = {};
+  const values = { ...DEFAULT_TRANSFORM };
+
+  AXES.forEach(({ key, label, min, max }) => {
+    rows[key] = createSliderRow(container, {
+      id: `${prefix}-${key}`, label, min, max, value: values[key],
+      onChange: (v) => { values[key] = v; onChange({ ...values }); },
+    });
+  });
+
+  const perspRow = document.createElement('label');
+  perspRow.className = 'checkbox-label';
+  const perspCheckbox = document.createElement('input');
+  perspCheckbox.type = 'checkbox';
+  perspCheckbox.id = `${prefix}-perspective`;
+  perspCheckbox.addEventListener('change', () => {
+    values.perspective = perspCheckbox.checked;
+    onChange({ ...values });
+  });
+  perspRow.append(perspCheckbox, document.createTextNode(' 3D perspective'));
+  container.appendChild(perspRow);
+
+  return {
+    setValues(transform) {
+      const t = { ...DEFAULT_TRANSFORM, ...(transform || {}) };
+      Object.assign(values, t);
+      AXES.forEach(({ key }) => rows[key].setValue(t[key]));
+      perspCheckbox.checked = t.perspective;
+    },
+  };
+}
+
 async function loadPreview() {
   const res = await fetch('/preview');
   const html = await res.text();
   frame.srcdoc = html;
   await new Promise((resolve) => { frame.onload = resolve; });
   wireClickHandlers();
+  applyCanvasSize();
   await refreshPreviewError();
 }
 
@@ -175,13 +253,21 @@ function wireClickHandlers() {
   }
 }
 
+function applyCanvasSize() {
+  frame.style.width = `${currentState.canvas_width}px`;
+  frame.style.height = `${currentState.canvas_height}px`;
+}
+
 async function fetchState() {
   const res = await fetch('/state');
   currentState = await res.json();
   return currentState;
 }
 
-async function postUpdate(payload) {
+// Persists a change to the server without reloading the preview — used whenever the
+// change was already applied live to the iframe's DOM, so a full reload would just be
+// redundant round-trip latency (this is what made dragging a slider feel sluggish).
+async function persistUpdate(payload) {
   const res = await fetch('/update', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -198,6 +284,12 @@ async function postUpdate(payload) {
       console.error('Update failed with unparseable response', err);
     }
   }
+}
+
+// Persists a change AND reloads the full preview — needed only when the server has to
+// re-render (Jinja2 template text resolution, or making a brand-new element visible).
+async function persistUpdateAndReload(payload) {
+  await persistUpdate(payload);
   await loadPreview();
 }
 
@@ -213,44 +305,36 @@ function renderElementList() {
   });
 }
 
+const elementControls = createTransformControls(
+  document.getElementById('element-transform-controls'), 'el',
+  (values) => {
+    if (!selectedSelector) return;
+    applyTransformToFrame(selectedSelector, values);
+    sendElementUpdate(values);
+  },
+);
+
+function applyTransformToFrame(selector, values) {
+  const doc = frame.contentDocument;
+  if (!doc) return;
+  const css = transformToCss(values);
+  doc.querySelectorAll(selector).forEach((el) => { el.style.transform = css; });
+}
+
+const sendElementUpdate = debounce((values) => {
+  persistUpdate({ type: 'element', selector: selectedSelector, transform: values });
+}, 150);
+
 function selectElement(selector) {
   selectedSelector = selector;
   selectedLayer = null;
   document.getElementById('layer-panel').style.display = 'none';
   document.getElementById('element-panel').style.display = 'block';
   document.getElementById('element-panel-title').textContent = selector;
-  const transform = (currentState.elements && currentState.elements[selector]) || {
-    translate_x: 0, translate_y: 0, translate_z: 0, rotate_x: 0, rotate_y: 0, rotate_z: 0,
-  };
-  document.getElementById('tx').value = transform.translate_x;
-  document.getElementById('ty').value = transform.translate_y;
-  document.getElementById('tz').value = transform.translate_z;
-  document.getElementById('rx').value = transform.rotate_x;
-  document.getElementById('ry').value = transform.rotate_y;
-  document.getElementById('rz').value = transform.rotate_z;
+  const transform = (currentState.elements && currentState.elements[selector]) || DEFAULT_TRANSFORM;
+  elementControls.setValues(transform);
   renderElementList();
 }
-
-const sendElementUpdate = debounce(() => {
-  postUpdate({
-    type: 'element',
-    selector: selectedSelector,
-    transform: {
-      translate_x: Number(document.getElementById('tx').value),
-      translate_y: Number(document.getElementById('ty').value),
-      translate_z: Number(document.getElementById('tz').value),
-      rotate_x: Number(document.getElementById('rx').value),
-      rotate_y: Number(document.getElementById('ry').value),
-      rotate_z: Number(document.getElementById('rz').value),
-    },
-  }).then(fetchState);
-}, 80);
-
-['tx', 'ty', 'tz', 'rx', 'ry', 'rz'].forEach((id) => {
-  document.getElementById(id).addEventListener('input', () => {
-    if (selectedSelector) sendElementUpdate();
-  });
-});
 
 function renderLayerTabs() {
   const tabs = document.getElementById('layer-tabs');
@@ -268,6 +352,73 @@ function renderLayerTabs() {
     currentState.layers.every((layer) => layer.active);
 }
 
+const layerControls = createTransformControls(
+  document.getElementById('layer-transform-controls'), 'layer',
+  (values) => {
+    if (selectedLayer === null) return;
+    applyTransformToFrame(`#Layer${selectedLayer + 1}`, values);
+    sendLayerUpdate();
+  },
+);
+
+function currentLayerPayload() {
+  return {
+    active: true,
+    template: document.getElementById('layer-template').value,
+    font_size: Number(document.getElementById('layer-font-size').value),
+    color: document.getElementById('layer-color').value,
+    weight: document.getElementById('layer-weight').value,
+    transform: currentLayerTransformValues(),
+  };
+}
+
+// createTransformControls doesn't expose its live values directly (only via onChange),
+// so this re-reads the same DOM inputs createSliderRow wired up for the layer panel.
+function currentLayerTransformValues() {
+  const values = { ...DEFAULT_TRANSFORM };
+  AXES.forEach(({ key }) => {
+    values[key] = Number(document.getElementById(`layer-${key}-num`).value) || 0;
+  });
+  values.perspective = document.getElementById('layer-perspective').checked;
+  return values;
+}
+
+function applyLayerStyleToFrame(index, layer) {
+  const doc = frame.contentDocument;
+  if (!doc) return;
+  const el = doc.querySelector(`#Layer${index + 1}`);
+  if (!el) return;
+  el.style.display = 'block';
+  el.style.fontSize = `${layer.font_size}px`;
+  el.style.color = layer.color;
+  el.style.fontWeight = layer.weight;
+  el.style.transform = transformToCss(layer.transform);
+}
+
+const sendLayerUpdate = debounce(() => {
+  if (selectedLayer === null) return;
+  persistUpdate({ type: 'layer', slot: selectedLayer, layer: currentLayerPayload() });
+}, 150);
+
+const sendLayerTemplateUpdate = debounce(() => {
+  if (selectedLayer === null) return;
+  persistUpdateAndReload({ type: 'layer', slot: selectedLayer, layer: currentLayerPayload() })
+    .then(fetchState).then(() => selectLayer(selectedLayer));
+}, 300);
+
+document.getElementById('layer-template').addEventListener('input', sendLayerTemplateUpdate);
+
+['layer-font-size', 'layer-color', 'layer-weight'].forEach((id) => {
+  const apply = () => {
+    if (selectedLayer === null) return;
+    const layer = currentLayerPayload();
+    applyLayerStyleToFrame(selectedLayer, layer);
+    sendLayerUpdate();
+  };
+  document.getElementById(id).addEventListener('input', apply);
+  document.getElementById(id).addEventListener('change', apply);
+});
+
 function selectLayer(index) {
   selectedLayer = index;
   selectedSelector = null;
@@ -278,57 +429,20 @@ function selectLayer(index) {
   document.getElementById('layer-font-size').value = layer.font_size;
   document.getElementById('layer-color').value = layer.color;
   document.getElementById('layer-weight').value = layer.weight;
-  document.getElementById('layer-tx').value = layer.transform.translate_x;
-  document.getElementById('layer-ty').value = layer.transform.translate_y;
-  document.getElementById('layer-tz').value = layer.transform.translate_z;
-  document.getElementById('layer-rx').value = layer.transform.rotate_x;
-  document.getElementById('layer-ry').value = layer.transform.rotate_y;
-  document.getElementById('layer-rz').value = layer.transform.rotate_z;
+  layerControls.setValues(layer.transform);
   renderLayerTabs();
 }
-
-const sendLayerUpdate = debounce(() => {
-  postUpdate({
-    type: 'layer',
-    slot: selectedLayer,
-    layer: {
-      active: true,
-      template: document.getElementById('layer-template').value,
-      font_size: Number(document.getElementById('layer-font-size').value),
-      color: document.getElementById('layer-color').value,
-      weight: document.getElementById('layer-weight').value,
-      transform: {
-        translate_x: Number(document.getElementById('layer-tx').value),
-        translate_y: Number(document.getElementById('layer-ty').value),
-        translate_z: Number(document.getElementById('layer-tz').value),
-        rotate_x: Number(document.getElementById('layer-rx').value),
-        rotate_y: Number(document.getElementById('layer-ry').value),
-        rotate_z: Number(document.getElementById('layer-rz').value),
-      },
-    },
-  }).then(fetchState).then(renderLayerTabs);
-}, 80);
-
-['layer-template', 'layer-font-size', 'layer-color', 'layer-weight',
- 'layer-tx', 'layer-ty', 'layer-tz', 'layer-rx', 'layer-ry', 'layer-rz'].forEach((id) => {
-  document.getElementById(id).addEventListener('input', () => {
-    if (selectedLayer !== null) sendLayerUpdate();
-  });
-  document.getElementById(id).addEventListener('change', () => {
-    if (selectedLayer !== null) sendLayerUpdate();
-  });
-});
 
 document.getElementById('add-layer-btn').addEventListener('click', async () => {
   await fetchState();
   const slot = currentState.layers.findIndex((layer) => !layer.active);
   if (slot === -1) return;
-  await postUpdate({
+  await persistUpdateAndReload({
     type: 'layer',
     slot,
     layer: {
       active: true, template: '{{ plugin.Name }}', font_size: 32, color: '#ffffff', weight: 'normal',
-      transform: { translate_x: 0, translate_y: 0, translate_z: 0, rotate_x: 0, rotate_y: 0, rotate_z: 0 },
+      transform: { ...DEFAULT_TRANSFORM },
     },
   });
   await fetchState();
@@ -336,21 +450,86 @@ document.getElementById('add-layer-btn').addEventListener('click', async () => {
   selectLayer(slot);
 });
 
+const angleRow = createSliderRow(document.getElementById('canvas-angle-row'), {
+  id: 'canvas-angle', label: 'Angle (deg)', min: 0, max: 360, value: 180,
+  onChange: () => applyAndSendCanvasUpdate(),
+});
+
+function currentCanvasGradientCss() {
+  const angle = Number(document.getElementById('canvas-angle-num').value) || 0;
+  const stop0 = document.getElementById('canvas-stop-0').value;
+  const stop1 = document.getElementById('canvas-stop-1').value;
+  return `linear-gradient(${angle}deg, ${stop0} 0%, ${stop1} 100%)`;
+}
+
+function applyCanvasBackgroundToFrame() {
+  const doc = frame.contentDocument;
+  if (!doc) return;
+  const gradientEnabled = document.getElementById('canvas-gradient-enabled').checked;
+  const transparent = document.getElementById('canvas-transparent').checked;
+  let value = '';
+  if (transparent) {
+    value = 'transparent';
+  } else if (gradientEnabled) {
+    value = currentCanvasGradientCss();
+  }
+  doc.documentElement.style.background = value;
+  doc.body.style.background = value;
+}
+
+function updateCanvasControlsVisibility() {
+  const gradientEnabled = document.getElementById('canvas-gradient-enabled').checked;
+  document.getElementById('canvas-gradient-controls').style.display = gradientEnabled ? 'block' : 'none';
+}
+
 const sendCanvasUpdate = debounce(() => {
-  postUpdate({
+  const gradientEnabled = document.getElementById('canvas-gradient-enabled').checked;
+  const transparent = document.getElementById('canvas-transparent').checked;
+  persistUpdate({
     type: 'canvas',
-    canvas: {
-      angle: Number(document.getElementById('canvas-angle').value),
+    transparent,
+    canvas: gradientEnabled ? {
+      angle: Number(document.getElementById('canvas-angle-num').value) || 0,
       stops: [
         { color: document.getElementById('canvas-stop-0').value, position: 0 },
         { color: document.getElementById('canvas-stop-1').value, position: 100 },
       ],
-    },
+    } : null,
   });
-}, 80);
+}, 150);
 
-['canvas-angle', 'canvas-stop-0', 'canvas-stop-1'].forEach((id) => {
-  document.getElementById(id).addEventListener('input', sendCanvasUpdate);
+function applyAndSendCanvasUpdate() {
+  applyCanvasBackgroundToFrame();
+  sendCanvasUpdate();
+}
+
+document.getElementById('canvas-gradient-enabled').addEventListener('change', () => {
+  if (document.getElementById('canvas-gradient-enabled').checked) {
+    document.getElementById('canvas-transparent').checked = false;
+  }
+  updateCanvasControlsVisibility();
+  applyAndSendCanvasUpdate();
+});
+document.getElementById('canvas-transparent').addEventListener('change', () => {
+  if (document.getElementById('canvas-transparent').checked) {
+    document.getElementById('canvas-gradient-enabled').checked = false;
+    updateCanvasControlsVisibility();
+  }
+  applyAndSendCanvasUpdate();
+});
+['canvas-stop-0', 'canvas-stop-1'].forEach((id) => {
+  document.getElementById(id).addEventListener('input', applyAndSendCanvasUpdate);
+});
+
+const sendCanvasSizeUpdate = debounce(() => {
+  currentState.canvas_width = Number(document.getElementById('canvas-width').value) || 1280;
+  currentState.canvas_height = Number(document.getElementById('canvas-height').value) || 720;
+  applyCanvasSize();
+  persistUpdate({ type: 'canvas_size', width: currentState.canvas_width, height: currentState.canvas_height });
+}, 150);
+
+['canvas-width', 'canvas-height'].forEach((id) => {
+  document.getElementById(id).addEventListener('change', sendCanvasSizeUpdate);
 });
 
 document.getElementById('save-btn').addEventListener('click', async () => {
@@ -373,8 +552,24 @@ document.getElementById('save-btn').addEventListener('click', async () => {
   status.textContent = `Saved to ${result.path}`;
 });
 
+function syncControlsFromState() {
+  const hasGradient = !!(currentState.canvas && currentState.canvas.stops && currentState.canvas.stops.length);
+  document.getElementById('canvas-gradient-enabled').checked = hasGradient;
+  document.getElementById('canvas-transparent').checked = !!currentState.transparent;
+  updateCanvasControlsVisibility();
+  if (currentState.canvas) {
+    angleRow.setValue(currentState.canvas.angle);
+    const stops = currentState.canvas.stops || [];
+    if (stops[0]) document.getElementById('canvas-stop-0').value = stops[0].color;
+    if (stops[1]) document.getElementById('canvas-stop-1').value = stops[1].color;
+  }
+  document.getElementById('canvas-width').value = currentState.canvas_width;
+  document.getElementById('canvas-height').value = currentState.canvas_height;
+}
+
 (async function init() {
   await fetchState();
+  syncControlsFromState();
   renderElementList();
   renderLayerTabs();
   await loadPreview();

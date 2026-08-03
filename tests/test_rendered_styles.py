@@ -109,3 +109,34 @@ def test_layer_activated_by_saved_theme_shows_plugin_driven_text(page, tmp_path,
     assert computed(page, "#Layer1", "display") == "block"
     content = page.eval_on_selector("#Layer1", "el => getComputedStyle(el, '::before').content")
     assert content == '"Steam Search"'
+
+
+def test_layer_does_not_rotate_with_window_border(page, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "promo.css").write_text(
+        "#WindowBorder { transform: perspective(2000px) rotateX(45deg) rotateY(-45deg); }\n"
+        "#Layer1 { display: block; }\n"
+        "#Layer1::before { content: \"Headline\"; }\n"
+    )
+    config = Config(
+        keyword="pm",
+        query="steam",
+        icon="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+        css="promo.css",
+        results=[{"title": "Steam", "subtitle": "sub", "icon": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="}],
+    )
+    page.set_content(render(config))
+
+    window_transform = computed(page, "#WindowBorder", "transform")
+    layer_transform = computed(page, "#Layer1", "transform")
+    assert window_transform != "none"
+    assert layer_transform == "none"
+
+
+def test_layer_is_a_sibling_of_window_border_not_a_child(page):
+    render_page(page, None)
+
+    is_child = page.eval_on_selector(
+        "#WindowBorder", "el => el.querySelector('#Layer1') !== null"
+    )
+    assert is_child is False
