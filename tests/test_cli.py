@@ -252,6 +252,39 @@ def test_get_args_edit_subcommand_parses_plugin_and_query_and_css():
     assert args.css == ["ad-neon.css"]
 
 
+def test_get_args_edit_subcommand_parses_max_results():
+    args = cli.get_args(["edit", "-p", "./plugin", "-q", "steam", "-m", "3"])
+
+    assert args.max_results == 3
+
+
+def test_get_args_edit_subcommand_max_results_defaults_to_three():
+    args = cli.get_args(["edit", "-p", "./plugin"])
+
+    assert args.max_results == 3
+
+
+def test_setup_edit_with_query_passes_max_results_to_plugin_to_config(tmp_path, monkeypatch):
+    (tmp_path / "plugin.json").write_text(json.dumps(MANIFEST))
+    (tmp_path / "main.py").write_text(
+        'import json\n'
+        'print(json.dumps({"result": ['
+        '{"Title": "a", "SubTitle": "", "IcoPath": "data:image/png;base64,x", "Score": 3},'
+        '{"Title": "b", "SubTitle": "", "IcoPath": "data:image/png;base64,x", "Score": 2},'
+        '{"Title": "c", "SubTitle": "", "IcoPath": "data:image/png;base64,x", "Score": 1}'
+        ']}))\n'
+    )
+    captured = {}
+    monkeypatch.setattr(cli.edit_server, "run",
+                        lambda config, base_css_files, **kw: captured.update(config=config))
+
+    args = Namespace(command="edit", plugin=str(tmp_path), plugin_url=None, query="q",
+                     css=None, config=None, i=False, output=None, max_results=2)
+    cli.setup(args)
+
+    assert [r["title"] for r in captured["config"].results] == ["a", "b"]
+
+
 def test_get_args_no_subcommand_has_command_none():
     args = cli.get_args(["-p", "./plugin"])
 

@@ -13,8 +13,12 @@ def test_transform_is_not_default_when_any_field_set():
     assert not Transform(rotate_z=90).is_default()
 
 
-def test_transform_is_not_default_when_perspective_enabled():
-    assert not Transform(perspective=True).is_default()
+def test_transform_is_not_default_when_perspective_is_nonzero():
+    assert not Transform(perspective=2000).is_default()
+
+
+def test_transform_is_default_when_perspective_is_zero():
+    assert Transform(perspective=0).is_default()
 
 
 def test_transform_is_not_default_when_scale_is_not_one():
@@ -30,12 +34,21 @@ def test_transform_to_css_value():
     )
 
 
-def test_transform_to_css_value_prefixes_perspective_when_enabled():
-    transform = Transform(rotate_x=45, rotate_y=-45, perspective=True)
+def test_transform_to_css_value_prefixes_perspective_with_its_distance():
+    transform = Transform(rotate_x=45, rotate_y=-45, perspective=800)
 
     assert transform.to_css_value() == (
-        "perspective(2000px) translate3d(0px, 0px, 0px) "
+        "perspective(800px) translate3d(0px, 0px, 0px) "
         "rotateX(45deg) rotateY(-45deg) rotateZ(0deg) scale(1)"
+    )
+
+
+def test_transform_to_css_value_composes_with_a_preserve_prefix():
+    transform = Transform(translate_z=100)
+
+    assert transform.to_css_value("translateY(-50%)") == (
+        "translateY(-50%) translate3d(0px, 0px, 100px) "
+        "rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale(1)"
     )
 
 
@@ -89,6 +102,35 @@ def test_edit_state_to_css_emits_non_default_element_transform():
     assert "transform: translate3d(10px, 0px, 0px) rotateX(0deg) rotateY(45deg) rotateZ(0deg) scale(1);" in css
 
 
+def test_edit_state_to_css_preserves_icon_centering_transform():
+    state = EditState(elements={".icon": Transform(translate_z=100)})
+
+    css = edit_state_to_css(state)
+
+    assert "transform: translateY(-50%) translate3d(0px, 0px, 100px)" in css
+
+
+def test_edit_state_to_css_preserves_glass_icon_and_hotkey_centering_transform():
+    state = EditState(elements={
+        "#GlassIcon": Transform(translate_x=10),
+        ".Hotkey": Transform(translate_x=-10),
+    })
+
+    css = edit_state_to_css(state)
+
+    assert "transform: translateY(-50%) translate3d(10px, 0px, 0px)" in css
+    assert "transform: translateY(-50%) translate3d(-10px, 0px, 0px)" in css
+
+
+def test_edit_state_to_css_does_not_add_preserve_prefix_for_window_border():
+    state = EditState(elements={"#WindowBorder": Transform(rotate_x=45)})
+
+    css = edit_state_to_css(state)
+
+    assert "transform: translate3d(0px, 0px, 0px) rotateX(45deg)" in css
+    assert "translateY(-50%)" not in css
+
+
 def test_edit_state_to_css_emits_non_default_scale():
     state = EditState(elements={"#WindowBorder": Transform(scale=1.3)})
 
@@ -106,7 +148,7 @@ def test_edit_state_to_css_unclips_window_when_an_inner_element_is_transformed()
 
 
 def test_edit_state_to_css_does_not_unclip_window_for_the_windows_own_transform():
-    state = EditState(elements={"#WindowBorder": Transform(rotate_x=45, perspective=True)})
+    state = EditState(elements={"#WindowBorder": Transform(rotate_x=45, perspective=2000)})
 
     css = edit_state_to_css(state)
 
@@ -283,10 +325,10 @@ def test_apply_update_sets_element_transform_with_perspective():
         "type": "element",
         "selector": "#WindowBorder",
         "transform": {"translate_x": 0, "translate_y": 0, "translate_z": 0,
-                      "rotate_x": 45, "rotate_y": -45, "rotate_z": 0, "perspective": True},
+                      "rotate_x": 45, "rotate_y": -45, "rotate_z": 0, "perspective": 1200},
     })
 
-    assert state.elements["#WindowBorder"].perspective is True
+    assert state.elements["#WindowBorder"].perspective == 1200
 
 
 def test_apply_update_sets_element_transform():

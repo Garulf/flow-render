@@ -142,15 +142,24 @@ const LAYER_SLOTS = 4;
 const AXES = [
   { key: 'translate_x', label: 'Translate X (px)', min: -400, max: 400, step: 1, reset: 0 },
   { key: 'translate_y', label: 'Translate Y (px)', min: -400, max: 400, step: 1, reset: 0 },
-  { key: 'translate_z', label: 'Translate Z (px)', min: -400, max: 400, step: 1, reset: 0 },
+  { key: 'translate_z', label: 'Translate Z (px)', min: -1000, max: 1000, step: 5, reset: 0 },
   { key: 'rotate_x', label: 'Rotate X (deg)', min: -180, max: 180, step: 1, reset: 0 },
   { key: 'rotate_y', label: 'Rotate Y (deg)', min: -180, max: 180, step: 1, reset: 0 },
   { key: 'rotate_z', label: 'Rotate Z (deg)', min: -180, max: 180, step: 1, reset: 0 },
   { key: 'scale', label: 'Scale', min: 0.1, max: 3, step: 0.05, reset: 1 },
+  { key: 'perspective', label: 'Perspective (px, 0 = off)', min: 0, max: 3000, step: 50, reset: 0 },
 ];
 const DEFAULT_TRANSFORM = {
   translate_x: 0, translate_y: 0, translate_z: 0,
-  rotate_x: 0, rotate_y: 0, rotate_z: 0, scale: 1, perspective: false,
+  rotate_x: 0, rotate_y: 0, rotate_z: 0, scale: 1, perspective: 0,
+};
+// These selectors center themselves with `transform: translateY(-50%)` in every
+// bundled theme — must match src/web_render/edit_state.py's TRANSFORM_PRESERVE_PREFIX,
+// or an edit-mode transform would replace that centering instead of composing with it.
+const TRANSFORM_PRESERVE_PREFIX = {
+  '#GlassIcon': 'translateY(-50%)',
+  '.icon': 'translateY(-50%)',
+  '.Hotkey': 'translateY(-50%)',
 };
 
 const frame = document.getElementById('preview-frame');
@@ -166,9 +175,10 @@ function debounce(fn, ms) {
   };
 }
 
-function transformToCss(t) {
-  const prefix = t.perspective ? 'perspective(2000px) ' : '';
-  return `${prefix}translate3d(${t.translate_x}px, ${t.translate_y}px, ${t.translate_z}px) `
+function transformToCss(t, preservePrefix = '') {
+  const perspectivePrefix = t.perspective ? `perspective(${t.perspective}px) ` : '';
+  const preserve = preservePrefix ? `${preservePrefix} ` : '';
+  return `${preserve}${perspectivePrefix}translate3d(${t.translate_x}px, ${t.translate_y}px, ${t.translate_z}px) `
     + `rotateX(${t.rotate_x}deg) rotateY(${t.rotate_y}deg) rotateZ(${t.rotate_z}deg) scale(${t.scale})`;
 }
 
@@ -200,8 +210,8 @@ function createSliderRow(container, { id, label, min, max, step = 1, value = 0, 
   return { setValue: (v) => { range.value = v; num.value = v; } };
 }
 
-// Builds the 6 translate/rotate sliders + a perspective checkbox into `container`.
-// onChange(values) fires with the full {translate_x..rotate_z, perspective} object on any edit.
+// Builds the translate/rotate/scale/perspective sliders into `container`.
+// onChange(values) fires with the full {translate_x..rotate_z, scale, perspective} object on any edit.
 function createTransformControls(container, prefix, onChange) {
   container.innerHTML = '';
   const rows = {};
@@ -214,24 +224,11 @@ function createTransformControls(container, prefix, onChange) {
     });
   });
 
-  const perspRow = document.createElement('label');
-  perspRow.className = 'checkbox-label';
-  const perspCheckbox = document.createElement('input');
-  perspCheckbox.type = 'checkbox';
-  perspCheckbox.id = `${prefix}-perspective`;
-  perspCheckbox.addEventListener('change', () => {
-    values.perspective = perspCheckbox.checked;
-    onChange({ ...values });
-  });
-  perspRow.append(perspCheckbox, document.createTextNode(' 3D perspective'));
-  container.appendChild(perspRow);
-
   return {
     setValues(transform) {
       const t = { ...DEFAULT_TRANSFORM, ...(transform || {}) };
       Object.assign(values, t);
       AXES.forEach(({ key }) => rows[key].setValue(t[key]));
-      perspCheckbox.checked = t.perspective;
     },
   };
 }
@@ -365,7 +362,7 @@ const elementControls = createTransformControls(
 function applyTransformToFrame(selector, values) {
   const doc = frame.contentDocument;
   if (!doc) return;
-  const css = transformToCss(values);
+  const css = transformToCss(values, TRANSFORM_PRESERVE_PREFIX[selector] || '');
   doc.querySelectorAll(selector).forEach((el) => { el.style.transform = css; });
 }
 
@@ -428,7 +425,6 @@ function currentLayerTransformValues() {
     const raw = document.getElementById(`layer-${key}-num`).value;
     values[key] = raw === '' ? reset : Number(raw);
   });
-  values.perspective = document.getElementById('layer-perspective').checked;
   return values;
 }
 

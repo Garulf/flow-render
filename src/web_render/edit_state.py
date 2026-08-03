@@ -6,6 +6,16 @@ LAYER_COUNT = len(LAYER_SELECTORS)
 DEFAULT_CANVAS_WIDTH = 1280
 DEFAULT_CANVAS_HEIGHT = 720
 
+# These selectors rely on `transform: translateY(-50%)` in every bundled theme for
+# their own vertical centering. An edit-mode transform must be composed with that
+# base transform (not replace it), or the element visibly jumps out of its centered
+# position the moment any transform is applied to it.
+TRANSFORM_PRESERVE_PREFIX = {
+    "#GlassIcon": "translateY(-50%)",
+    ".icon": "translateY(-50%)",
+    ".Hotkey": "translateY(-50%)",
+}
+
 
 @dataclass
 class Transform:
@@ -16,7 +26,7 @@ class Transform:
     rotate_y: float = 0
     rotate_z: float = 0
     scale: float = 1
-    perspective: bool = False
+    perspective: float = 0
 
     def is_default(self) -> bool:
         return not any([
@@ -25,10 +35,11 @@ class Transform:
             self.perspective,
         ]) and self.scale == 1
 
-    def to_css_value(self) -> str:
-        prefix = "perspective(2000px) " if self.perspective else ""
+    def to_css_value(self, preserve_prefix: str = "") -> str:
+        perspective_prefix = f"perspective({self.perspective}px) " if self.perspective else ""
+        preserve = f"{preserve_prefix} " if preserve_prefix else ""
         return (
-            f"{prefix}translate3d({self.translate_x}px, {self.translate_y}px, {self.translate_z}px) "
+            f"{preserve}{perspective_prefix}translate3d({self.translate_x}px, {self.translate_y}px, {self.translate_z}px) "
             f"rotateX({self.rotate_x}deg) rotateY({self.rotate_y}deg) rotateZ({self.rotate_z}deg) "
             f"scale({self.scale})"
         )
@@ -105,8 +116,9 @@ def edit_state_to_css(state: EditState) -> str:
     for selector, transform in state.elements.items():
         if transform.is_default():
             continue
+        preserve_prefix = TRANSFORM_PRESERVE_PREFIX.get(selector, "")
         lines.append(f"{selector} {{")
-        lines.append(f"    transform: {transform.to_css_value()};")
+        lines.append(f"    transform: {transform.to_css_value(preserve_prefix)};")
         lines.append("}")
 
     for slot_index, layer in enumerate(state.layers):
@@ -154,7 +166,7 @@ def transform_from_dict(data: dict) -> Transform:
         rotate_y=data.get("rotate_y", 0),
         rotate_z=data.get("rotate_z", 0),
         scale=data.get("scale", 1),
-        perspective=data.get("perspective", False),
+        perspective=data.get("perspective", 0),
     )
 
 
