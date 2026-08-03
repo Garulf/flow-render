@@ -176,6 +176,20 @@ function debounce(fn, ms) {
   };
 }
 
+// Like debounce(), but keeps one independent timer per `key` instead of a single
+// shared one. Without this, editing element/layer A and quickly switching to
+// element/layer B within the debounce window cancels A's still-pending send
+// (since a single shared timer treats "any call" as "reschedule the one timer"),
+// silently dropping A's edit — it never reaches the server, so A reverts to its
+// last-persisted value on the next reload, which looks like "changing B reset A".
+function debounceByKey(fn, ms) {
+  const timers = {};
+  return (key, ...args) => {
+    clearTimeout(timers[key]);
+    timers[key] = setTimeout(() => fn(key, ...args), ms);
+  };
+}
+
 function transformToCss(t, preservePrefix = '') {
   const perspectivePrefix = t.perspective ? `perspective(${t.perspective}px) ` : '';
   const preserve = preservePrefix ? `${preservePrefix} ` : '';
@@ -356,11 +370,12 @@ const elementControls = createTransformControls(
   document.getElementById('element-transform-controls'), 'el',
   (values) => {
     if (!selectedSelector) return;
-    applyTransformToFrame(selectedSelector, values);
+    const selector = selectedSelector;
+    applyTransformToFrame(selector, values);
     currentState.elements = currentState.elements || {};
-    currentState.elements[selectedSelector] = values;
+    currentState.elements[selector] = values;
     updateWindowOverflowForFrame();
-    sendElementUpdate(values);
+    sendElementUpdate(selector, values);
   },
 );
 
@@ -395,8 +410,8 @@ function updateWindowOverflowForFrame() {
   windowEl.style.overflow = anyInnerTransformed ? 'visible' : '';
 }
 
-const sendElementUpdate = debounce((values) => {
-  persistUpdate({ type: 'element', selector: selectedSelector, transform: values });
+const sendElementUpdate = debounceByKey((selector, values) => {
+  persistUpdate({ type: 'element', selector, transform: values });
 }, 150);
 
 function selectElement(selector) {
@@ -430,8 +445,13 @@ const layerControls = createTransformControls(
   document.getElementById('layer-transform-controls'), 'layer',
   (values) => {
     if (selectedLayer === null) return;
-    applyTransformToFrame(`#Layer${selectedLayer + 1}`, values);
-    sendLayerUpdate();
+    const slot = selectedLayer;
+    applyTransformToFrame(`#Layer${slot + 1}`, values);
+    // currentLayerPayload() reads the DOM synchronously right now (the sliders
+    // already reflect `values` at this point), so this freezes slot's payload
+    // immediately rather than letting a debounced callback re-read the DOM
+    // 150ms later — by which point the user may have switched to another layer.
+    sendLayerUpdate(slot, currentLayerPayload());
   },
 );
 
@@ -469,25 +489,30 @@ function applyLayerStyleToFrame(index, layer) {
   el.style.transform = transformToCss(layer.transform);
 }
 
-const sendLayerUpdate = debounce(() => {
-  if (selectedLayer === null) return;
-  persistUpdate({ type: 'layer', slot: selectedLayer, layer: currentLayerPayload() });
+const sendLayerUpdate = debounceByKey((slot, layer) => {
+  persistUpdate({ type: 'layer', slot, layer });
 }, 150);
 
-const sendLayerTemplateUpdate = debounce(() => {
-  if (selectedLayer === null) return;
-  persistUpdateAndReload({ type: 'layer', slot: selectedLayer, layer: currentLayerPayload() })
-    .then(fetchState).then(() => selectLayer(selectedLayer));
+const sendLayerTemplateUpdate = debounceByKey((slot, layer) => {
+  persistUpdateAndReload({ type: 'layer', slot, layer })
+    .then(fetchState)
+    // Only refresh the panel if still on the same layer — the user may have
+    // switched to another one during this debounce/reload round trip.
+    .then(() => { if (selectedLayer === slot) selectLayer(slot); });
 }, 300);
 
-document.getElementById('layer-template').addEventListener('input', sendLayerTemplateUpdate);
+document.getElementById('layer-template').addEventListener('input', () => {
+  if (selectedLayer === null) return;
+  sendLayerTemplateUpdate(selectedLayer, currentLayerPayload());
+});
 
 ['layer-font-size', 'layer-color', 'layer-weight'].forEach((id) => {
   const apply = () => {
     if (selectedLayer === null) return;
+    const slot = selectedLayer;
     const layer = currentLayerPayload();
-    applyLayerStyleToFrame(selectedLayer, layer);
-    sendLayerUpdate();
+    applyLayerStyleToFrame(slot, layer);
+    sendLayerUpdate(slot, layer);
   };
   document.getElementById(id).addEventListener('input', apply);
   document.getElementById(id).addEventListener('change', apply);
