@@ -20,7 +20,20 @@ def make_config(**overrides):
 def test_suggested_query_completes_matching_result_title():
     config = make_config()
 
-    assert config.query_suggestion == "pm Steam Search"
+    assert config.query_suggestion == "pm steam Search"
+
+
+def test_suggested_query_keeps_typed_casing_for_the_overlap():
+    # The overlap between typed text and ghost suggestion must match
+    # character-for-character (it's rendered underneath the typed text via a
+    # CSS overlay), so the query's own casing wins there even when it
+    # differs from the matched title's — only the untyped remainder takes
+    # the title's casing.
+    config = make_config(query="meg", results=[
+        {"title": "Megabonk", "subtitle": "sub", "icon": "data:image/png;base64,y"},
+    ])
+
+    assert config.query_suggestion == "pm megabonk"
 
 
 def test_suggested_query_empty_when_query_not_in_title():

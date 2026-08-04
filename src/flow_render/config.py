@@ -54,9 +54,16 @@ class Config:
         title = self.selected_result["title"]
         if not title.lower().startswith(self.query.lower()):
             return ""
+        # Keep the query's own casing for the part that overlaps with the typed
+        # text (rendered ghosted underneath it) and only take the title's
+        # casing for the untyped remainder — the overlay trick that hides the
+        # ghost text under the real typed text relies on that overlap being an
+        # exact character match, which a case mismatch (e.g. query "meg" vs.
+        # title "Megabonk") would visibly break.
+        completion = self.query + title[len(self.query):]
         if self.keyword:
-            return f"{self.keyword} {title}"
-        return title
+            return f"{self.keyword} {completion}"
+        return completion
 
     @property
     def full_query(self) -> str:
