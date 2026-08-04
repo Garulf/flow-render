@@ -6,8 +6,6 @@ screenshots for READMEs and store listings without staging a real launcher windo
 
 ![example output](example/splash.png)
 
-![example output](example/themes/win11-dark.png)
-
 ## How it works
 
 1. A `Config` (from a JSON file, or built by running a real plugin) describes the
