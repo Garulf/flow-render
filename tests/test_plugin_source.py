@@ -100,6 +100,29 @@ def test_resolve_plugin_path_returns_existing_directory_as_is(tmp_path, monkeypa
     assert resolve_plugin_path(str(plugin_dir)) == str(plugin_dir)
 
 
+def test_resolve_plugin_path_uses_parent_dir_when_given_a_file_inside_it(tmp_path, monkeypatch):
+    monkeypatch.delenv("APPDATA", raising=False)
+    plugin_dir = tmp_path / "Github Quick Launcher-4.0.0"
+    plugin_dir.mkdir()
+    (plugin_dir / "plugin.json").write_text("{}")
+    pyz = plugin_dir / "Github-Quick-Launcher.pyz"
+    pyz.write_bytes(b"")
+
+    assert resolve_plugin_path(str(pyz)) == str(plugin_dir.resolve())
+
+
+def test_resolve_plugin_path_does_not_use_parent_dir_without_plugin_json(tmp_path, monkeypatch):
+    monkeypatch.delenv("APPDATA", raising=False)
+    monkeypatch.chdir(tmp_path)
+    plain_dir = tmp_path / "not-a-plugin"
+    plain_dir.mkdir()
+    stray_file = plain_dir / "readme.txt"
+    stray_file.write_text("hi")
+
+    with pytest.raises(FileNotFoundError):
+        resolve_plugin_path(str(stray_file))
+
+
 def test_resolve_plugin_path_finds_exact_name_match_in_cwd(tmp_path, monkeypatch):
     monkeypatch.delenv("APPDATA", raising=False)
     monkeypatch.chdir(tmp_path)

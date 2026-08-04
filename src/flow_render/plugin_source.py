@@ -69,12 +69,18 @@ def resolve_plugin_path(value: str) -> str:
     dir, so a relative path here would get resolved twice and break.
 
     If `value` is already a directory (relative to cwd or absolute), it's used
-    as-is — this is the existing/primary behavior and always wins. Otherwise
-    `value` is treated as a plugin name: look for a matching subdirectory of
-    the current directory first, then of Flow Launcher's own Plugins
-    directory."""
-    if Path(value).is_dir():
-        return str(Path(value).resolve())
+    as-is — this is the existing/primary behavior and always wins. If it's a
+    *file* whose parent directory has a plugin.json next to it, the parent is
+    used instead — a common slip is pointing -p at the plugin's entry script
+    or a bundled interpreter (e.g. a portable .pyz) rather than its folder.
+    Otherwise `value` is treated as a plugin name: look for a matching
+    subdirectory of the current directory first, then of Flow Launcher's own
+    Plugins directory."""
+    path = Path(value)
+    if path.is_dir():
+        return str(path.resolve())
+    if path.is_file() and (path.parent / 'plugin.json').is_file():
+        return str(path.parent.resolve())
 
     found = _find_plugin_dir_by_name(Path.cwd(), value)
     if found is None:
