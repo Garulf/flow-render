@@ -4,7 +4,7 @@ Renders a Flow Launcher search-result mockup to HTML, screenshots it headlessly 
 Playwright, and crops the result to a transparent PNG — useful for generating plugin
 screenshots for READMEs and store listings without staging a real launcher window.
 
-![example output](example/themes/default.png)
+![example output](example/themes/win11-dark.png)
 
 ## How it works
 
