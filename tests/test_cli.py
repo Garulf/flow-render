@@ -39,6 +39,18 @@ def test_setup_with_plugin_builds_config_and_renders(tmp_path, monkeypatch):
     assert rendered["config"].results[0]["title"] == "a"
 
 
+@pytest.mark.parametrize("query", [None, ""])
+def test_setup_with_missing_or_empty_query_renders_blank_query(tmp_path, monkeypatch, query):
+    (tmp_path / "plugin.json").write_text(json.dumps(MANIFEST))
+    (tmp_path / "main.py").write_text(MAIN_PY)
+    rendered = {}
+    monkeypatch.setattr(cli, "main", lambda config, output_dir=None, **kwargs: rendered.update(config=config, output_dir=output_dir))
+
+    cli.setup(Namespace(config=None, plugin=str(tmp_path), plugin_url=None, query=query, i=False, css=None, output=None, max_results=3, hide_caret=False, command=None, width=None, height=None, print_json=False, save_json=False))
+
+    assert rendered["config"].query == ""
+
+
 def test_setup_with_plugin_url_builds_config_and_renders(tmp_path, monkeypatch):
     plugin_dir = tmp_path / "plugin"
     plugin_dir.mkdir()

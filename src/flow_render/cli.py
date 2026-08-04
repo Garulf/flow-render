@@ -53,7 +53,7 @@ def normalize_css_names(css_names):
 def config_from_plugin(plugin: Plugin, args: Namespace) -> Config:
     config = (
         plugin_manager_config(plugin, max_results=args.max_results) if args.i
-        else plugin_to_config(plugin, args.query, max_results=args.max_results)
+        else plugin_to_config(plugin, args.query or "", max_results=args.max_results)
     )
     config.show_caret = not args.hide_caret
     css = normalize_css_names(args.css)
