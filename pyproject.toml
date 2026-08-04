@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "flow-render"
-version = "0.13.0"
+version = "0.14.0"
 description = "Render a Flow Launcher plugin result as a screenshot"
 readme = "README.md"
 license = "MIT"
