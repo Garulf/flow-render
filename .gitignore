@@ -12,6 +12,8 @@ Desktop.ini
 
 # Root config files
 /*.json
+!/release-please-config.json
+!/.release-please-manifest.json
 
 # Environment / local config
 .env
