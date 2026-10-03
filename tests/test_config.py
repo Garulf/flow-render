@@ -231,8 +231,8 @@ def test_is_not_empty_with_action_keyword_only():
     assert make_config(keyword="pm", query="", results=[]).is_empty is False
 
 
-def test_is_not_empty_with_results():
-    assert make_config(keyword="", query="").is_empty is False
+def test_is_empty_even_with_results():
+    assert make_config(keyword="", query="").is_empty is True
 
 
 def test_clock_text_uses_configured_clock():
@@ -251,3 +251,7 @@ def test_empty_config_has_no_query_or_results():
     assert config.is_empty
     assert config.full_query == ""
     assert config.results == []
+
+
+def test_visible_results_empty_when_query_box_is_empty():
+    assert make_config(keyword="", query="").visible_results == []

@@ -94,11 +94,11 @@ body {
     fill: currentColor;
 }
 
-#WindowBorder.empty {
+#WindowBorder.no-results {
     padding-bottom: 0;
 }
 
-.empty #QueryBoxArea {
+.no-results #QueryBoxArea {
     margin-top: 4px;
     margin-bottom: 4px;
 }
@@ -107,8 +107,8 @@ body {
     display: block;
 }
 
-.empty #Separator,
-.empty #ResultsList {
+.no-results #Separator,
+.no-results #ResultsList {
     display: none;
 }
 

@@ -172,7 +172,7 @@ def test_render_empty_state_shows_placeholder_and_clock(tmp_path, monkeypatch):
     render_from_config(make_empty_config(clock="02:42 PM"), str(output))
 
     html = output.read_text()
-    assert 'id="WindowBorder" class="empty"' in html
+    assert 'id="WindowBorder" class="empty no-results"' in html
     assert '<div id="QueryBoxSuggestion">Type here to search</div>' in html
     assert '<div id="ClockBox">02:42 PM</div>' in html
 
@@ -196,4 +196,26 @@ def test_render_with_query_has_no_placeholder(tmp_path, monkeypatch):
 
     html = output.read_text()
     assert "Type here to search" not in html
-    assert 'class="empty"' not in html
+    assert '<div id="WindowBorder">' in html
+
+
+def test_render_empty_query_drops_results(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    output = tmp_path / "out.html"
+    results = [{"title": f"r{i}", "subtitle": "sub", "icon": "data:image/png;base64,y"} for i in range(5)]
+
+    render_from_config(make_empty_config(results=results), str(output))
+
+    html = output.read_text()
+    assert 'id="WindowBorder" class="empty no-results"' in html
+    assert '<div class="Title">' not in html
+    assert '<div id="ResultsScrollbar">' not in html
+
+
+def test_render_typed_query_without_results_is_marked_no_results(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    output = tmp_path / "out.html"
+
+    render_from_config(make_config(0, max_results=3), str(output))
+
+    assert 'id="WindowBorder" class="no-results"' in output.read_text()

@@ -43,6 +43,8 @@ class Config:
 
     @property
     def visible_results(self) -> List[PluginResult]:
+        if self.is_empty:
+            return []
         return self.results[:self.max_results]
 
     @property
@@ -71,7 +73,7 @@ class Config:
 
     @property
     def is_empty(self) -> bool:
-        return not self.full_query and not self.results
+        return not self.full_query
 
     @property
     def clock_text(self) -> str:
