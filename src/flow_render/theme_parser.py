@@ -105,7 +105,7 @@ FALLBACK_RESOURCES = {
         'ItemSelectedBackgroundColor': '#F9F9F9',
         'BasicSystemAccentColor': '#0078D4',
         'SystemAccentColorLight1Brush': '#0078D4',
-        'SystemThemeBorder': '#4A4A4A',
+        'SystemThemeBorder': '#AAAAAA',
         'ThumbColor': '#C0C0C0',
         'ClockDateForeground': '#605E5C',
         'QueryBoxSecondaryForeground': '#C3C3C3',
