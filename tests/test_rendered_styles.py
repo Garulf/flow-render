@@ -210,3 +210,24 @@ def test_win11_empty_state_colors_match_flow(page, skin, placeholder, clock):
 
     assert computed(page, "#QueryBoxSuggestion", "color") == placeholder
     assert computed(page, "#ClockBox", "color") == clock
+
+
+def test_empty_query_hides_results_list_even_when_config_has_results(page):
+    config = Config(
+        keyword="", query="", icon="data:image/png;base64,x", css="win11-dark.css", clock="02:42 PM",
+        results=[{"title": "Recent", "subtitle": "sub", "icon": "data:image/png;base64,x"}],
+    )
+    page.set_content(render(config))
+
+    assert is_displayed(page, "#ClockBox")
+    assert not is_displayed(page, "#Separator")
+    assert not is_displayed(page, "#ResultsList")
+
+
+def test_typed_query_without_results_collapses_to_the_query_box(page):
+    config = Config(keyword="pm", query="zzz", icon="data:image/png;base64,x", css="win11-dark.css")
+    page.set_content(render(config))
+
+    assert not is_displayed(page, "#ClockBox")
+    assert not is_displayed(page, "#Separator")
+    assert not is_displayed(page, "#ResultsList")

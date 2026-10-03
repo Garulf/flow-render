@@ -1,4 +1,4 @@
-/* warnings: unresolved resource 'SystemAccentColorLight1' for ItemSelectedBackgroundColor; using #1B1B1B; unresolved resource 'SystemControlHighlightBaseHighBrush' for Foreground; using #1B1B1B; unresolved resource 'SystemControlHighlightBaseMediumLowBrush' for Foreground; using #1B1B1B; unresolved resource 'SystemControlBackgroundChromeMediumLowBrush' for Background; using #F3F3F3; unresolved resource 'SystemControlBackgroundChromeMediumBrush' for BorderBrush; using #4A4A4A; unresolved resource 'SystemControlPageTextBaseHighBrush' for Foreground; using #1B1B1B; unresolved resource 'SystemControlPageTextBaseMediumBrush' for Foreground; using #1B1B1B; unresolved resource 'SystemControlBackgroundChromeMediumBrush' for BorderBrush; using #4A4A4A; unresolved resource 'SystemControlPageTextBaseHighBrush' for Foreground; using #1B1B1B; unresolved resource 'SystemControlPageTextBaseMediumBrush' for Foreground; using #1B1B1B */
+/* warnings: unresolved resource 'SystemAccentColorLight1' for ItemSelectedBackgroundColor; using #1B1B1B; unresolved resource 'SystemControlHighlightBaseHighBrush' for Foreground; using #1B1B1B; unresolved resource 'SystemControlHighlightBaseMediumLowBrush' for Foreground; using #1B1B1B; unresolved resource 'SystemControlBackgroundChromeMediumLowBrush' for Background; using #F3F3F3; unresolved resource 'SystemControlBackgroundChromeMediumBrush' for BorderBrush; using #AAAAAA; unresolved resource 'SystemControlPageTextBaseHighBrush' for Foreground; using #1B1B1B; unresolved resource 'SystemControlPageTextBaseMediumBrush' for Foreground; using #1B1B1B; unresolved resource 'SystemControlBackgroundChromeMediumBrush' for BorderBrush; using #AAAAAA; unresolved resource 'SystemControlPageTextBaseHighBrush' for Foreground; using #1B1B1B; unresolved resource 'SystemControlPageTextBaseMediumBrush' for Foreground; using #1B1B1B */
 /* Generated from Circle (light). */
 body {
     font-family: 'Segoe UI', 'Segoe UI Variable', 'Liberation Sans', Arial, sans-serif;
@@ -143,7 +143,7 @@ body {
 
 #WindowBorder {
     background-color: #FAFAFA;
-    border: 1px solid #4A4A4A;
+    border: 1px solid #AAAAAA;
 }
 #QueryBoxText {
     color: #1B1B1B;

@@ -30,7 +30,8 @@
 <body>
     <div>
         <div id="Preview">
-            <div id="WindowBorder"{{ ' class="empty"' if render_data.is_empty else '' }}>
+            {%- set window_classes = ['empty' if render_data.is_empty, 'no-results' if not render_data.visible_results] | select | join(' ') %}
+            <div id="WindowBorder"{% if window_classes %} class="{{ window_classes }}"{% endif %}>
                 <div id="QueryBoxArea">
                     <div>
                       <div id="QueryBoxText" class="{{ '' if render_data.show_caret else 'no-caret' }}">{% if not render_data.is_empty %}{{ render_data.keyword }} {{ query }}{% endif %}</div>
@@ -58,7 +59,7 @@
                             <div class="Hotkey">{{ 'Alt+' ~ loop.index if loop.index <= 9 else '' }}</div>
                         </div>
                     {% endfor %}
-                    {% if results|length > max_results %}
+                    {% if render_data.visible_results and results|length > max_results %}
                         <div id="ResultsScrollbar"><div class="thumb" style="height: {{ render_data.scrollbar_thumb_percent }}%"></div></div>
                     {% endif %}
                 </div>

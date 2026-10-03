@@ -249,9 +249,11 @@ See `example/config.json`:
 - `icon` accepts a data URI or a path relative to the config file — relative paths are
   resolved and inlined automatically.
 - `selection` is the index of the highlighted row.
-- A config with empty `keyword`, `query` and `results` renders the idle search window
-  (see `--empty`). Its optional `clock` field sets the time shown; leave it out to use
-  the current time.
+- When `keyword` and `query` are both empty, the window renders as Flow Launcher does
+  before anything is typed: the "Type here to search" placeholder, a clock and the search
+  glyph, with no results (any `results` in the config are ignored; see `--empty`). The
+  optional `clock` field sets the time shown; leave it out to use the current time.
+- A query with no results collapses the window to just the query box.
 - `query_suggestion` is auto-filled, when left empty, with the selected result's title —
   but only if the typed `query` is a case-insensitive prefix of it. The untyped remainder
   renders as grayed-out ghost text after the cursor (the usual autocomplete look); no
