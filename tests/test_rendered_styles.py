@@ -166,3 +166,47 @@ def test_caret_hidden_when_show_caret_is_false(page):
         "#QueryBoxText", "el => getComputedStyle(el, '::after').display"
     )
     assert display == "none"
+
+
+def render_empty_page(page, skin):
+    config = Config(keyword="", query="", icon="data:image/png;base64,x", css=skin, clock="02:42 PM")
+    page.set_content(render(config))
+
+
+def is_displayed(page, selector):
+    return page.eval_on_selector(selector, "el => getComputedStyle(el).display !== 'none'")
+
+
+@pytest.mark.parametrize("skin", [None, "win11-dark.css", "win11-light.css", "themes/dracula.css"])
+def test_empty_state_collapses_to_the_query_box(page, skin):
+    render_empty_page(page, skin)
+
+    assert is_displayed(page, "#ClockBox")
+    assert not is_displayed(page, "#Separator")
+    assert not is_displayed(page, "#ResultsList")
+    assert computed(page, "#WindowBorder", "paddingBottom") == "0px"
+
+
+def test_clock_hidden_when_query_is_typed(page):
+    render_page(page, "win11-dark.css")
+
+    assert not is_displayed(page, "#ClockBox")
+
+
+def test_empty_state_clock_sits_left_of_search_icon(page):
+    render_empty_page(page, "win11-dark.css")
+
+    clock_right = page.eval_on_selector("#ClockBox", "el => el.getBoundingClientRect().right")
+    icon_left = page.eval_on_selector("#GlassIcon", "el => el.getBoundingClientRect().left")
+    assert clock_right < icon_left
+
+
+@pytest.mark.parametrize("skin, placeholder, clock", [
+    ("win11-dark.css", "rgb(108, 108, 108)", "rgb(91, 91, 91)"),
+    ("win11-light.css", "rgb(195, 195, 195)", "rgb(203, 203, 203)"),
+])
+def test_win11_empty_state_colors_match_flow(page, skin, placeholder, clock):
+    render_empty_page(page, skin)
+
+    assert computed(page, "#QueryBoxSuggestion", "color") == placeholder
+    assert computed(page, "#ClockBox", "color") == clock

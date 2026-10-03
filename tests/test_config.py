@@ -1,6 +1,7 @@
 import json
+import re
 
-from flow_render.config import Config, plugin_to_config, plugin_manager_config
+from flow_render.config import Config, empty_config, plugin_to_config, plugin_manager_config
 from flow_render.plugin import Plugin
 
 
@@ -216,3 +217,37 @@ def test_plain_config_has_no_plugin_by_default():
     config = make_config()
 
     assert config.plugin is None
+
+
+def test_is_empty_when_no_query_and_no_results():
+    assert make_config(keyword="", query="", results=[]).is_empty is True
+
+
+def test_is_not_empty_with_typed_query():
+    assert make_config(keyword="", query="steam", results=[]).is_empty is False
+
+
+def test_is_not_empty_with_action_keyword_only():
+    assert make_config(keyword="pm", query="", results=[]).is_empty is False
+
+
+def test_is_not_empty_with_results():
+    assert make_config(keyword="", query="").is_empty is False
+
+
+def test_clock_text_uses_configured_clock():
+    assert make_config(clock="02:42 PM").clock_text == "02:42 PM"
+
+
+def test_clock_text_defaults_to_current_twelve_hour_time():
+    clock_text = make_config().clock_text
+
+    assert re.fullmatch(r"\d\d:\d\d [AP]M", clock_text)
+
+
+def test_empty_config_has_no_query_or_results():
+    config = empty_config()
+
+    assert config.is_empty
+    assert config.full_query == ""
+    assert config.results == []

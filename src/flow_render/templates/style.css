@@ -76,6 +76,42 @@ body {
     transform: translateY(-50%);
 }
 
+#ClockBox {
+    display: none;
+    position: absolute;
+    right: 44px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 20px;
+    color: #C6C6C6;
+    white-space: nowrap;
+}
+
+#GlassIcon svg {
+    display: block;
+    width: 24px;
+    height: 24px;
+    fill: currentColor;
+}
+
+#WindowBorder.empty {
+    padding-bottom: 0;
+}
+
+.empty #QueryBoxArea {
+    margin-top: 4px;
+    margin-bottom: 4px;
+}
+
+.empty #ClockBox {
+    display: block;
+}
+
+.empty #Separator,
+.empty #ResultsList {
+    display: none;
+}
+
 #Separator {
     position: relative;
     top: 0px;

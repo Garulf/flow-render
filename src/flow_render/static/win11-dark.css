@@ -62,6 +62,22 @@ body {
     transform: translateY(-50%);
 }
 
+.empty #GlassIcon {
+    right: 0;
+}
+
+#GlassIcon svg {
+    width: 18px;
+    height: 18px;
+    color: #4D4D4D;
+}
+
+#ClockBox {
+    right: 30px;
+    font-size: 16px;
+    color: #5B5B5B;
+}
+
 #GlassIcon img {
     width: 24px;
     height: 24px;

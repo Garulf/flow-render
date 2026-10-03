@@ -432,3 +432,27 @@ def test_setup_edit_with_plugin_url_extracts_and_dispatches(tmp_path, monkeypatc
     cli.setup(args)
 
     assert captured["config"].plugin["Name"] == "Test"
+
+
+def test_get_args_parses_empty_and_clock_flags():
+    args = cli.get_args(["--empty", "--clock", "02:42 PM"])
+
+    assert args.empty is True
+    assert args.clock == "02:42 PM"
+
+
+def test_setup_with_empty_renders_empty_state_without_a_plugin(monkeypatch):
+    rendered = {}
+    monkeypatch.setattr(cli, "main", lambda config, output_dir=None, **kwargs: rendered.update(config=config))
+
+    cli.setup(cli.get_args(["--empty", "-s", "win11-dark", "--clock", "02:42 PM"]))
+
+    config = rendered["config"]
+    assert config.is_empty
+    assert config.css == "win11-dark.css"
+    assert config.clock_text == "02:42 PM"
+
+
+def test_get_args_rejects_empty_with_plugin():
+    with pytest.raises(SystemExit):
+        cli.get_args(["--empty", "-p", "./plugin"])

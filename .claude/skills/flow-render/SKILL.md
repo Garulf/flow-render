@@ -20,6 +20,7 @@ bootstraps `.venv` and Chromium). Elsewhere, use `flow-render` if installed
 | Run a real plugin against a query | `flow-render -p ./path/to/plugin -q "query"` |
 | Plugin from a release zip or URL | `flow-render -u https://…/plugin.zip -q "query"` |
 | "pm install <Name>" store-style shot | `flow-render -p ./plugin -i` (or `-u … -i`) |
+| Idle search window (placeholder + clock, no plugin) | `flow-render --empty -s win11-dark --clock "02:42 PM"` |
 | Hand-authored / reproducible mockup | `flow-render -c ./config.json` |
 | Interactively design a promo theme | `flow-render edit -p ./plugin [-q "query"] [-s theme]` (opens a browser; needs a human) |
 
@@ -28,7 +29,9 @@ Common flags:
   repo (e.g. `-o ./docs/images`); the default is a per-user data dir
   (`~/.local/share/flow-render/output`, `%LOCALAPPDATA%\flow-render\output`, …).
 - `-s THEME [THEME …]`: stylesheets, `.css` optional, later ones win. Only applies
-  with `-p`/`-u`; with `-c` the config's own `css` field is used.
+  with `-p`/`-u`/`--empty`; with `-c` the config's own `css` field is used.
+- `--clock "HH:MM AM"`: time shown by `--empty`. Pass it for reproducible images;
+  otherwise the current time is baked in.
 - `-m N`: rows shown (default 3). If the plugin returns more results, a scrollbar thumb
   is drawn to show there are more rows.
 - `-W`/`-H`: canvas size in px (default 1280×720 unless the theme embeds one).

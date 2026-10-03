@@ -159,3 +159,41 @@ def test_detect_canvas_size_resolves_bundled_static_theme_with_no_marker(tmp_pat
     monkeypatch.chdir(tmp_path)
 
     assert detect_canvas_size(["win11-dark.css"]) is None
+
+
+def make_empty_config(**overrides):
+    return Config(keyword="", query="", icon="data:image/png;base64,x", **overrides)
+
+
+def test_render_empty_state_shows_placeholder_and_clock(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    output = tmp_path / "out.html"
+
+    render_from_config(make_empty_config(clock="02:42 PM"), str(output))
+
+    html = output.read_text()
+    assert 'id="WindowBorder" class="empty"' in html
+    assert '<div id="QueryBoxSuggestion">Type here to search</div>' in html
+    assert '<div id="ClockBox">02:42 PM</div>' in html
+
+
+def test_render_empty_state_swaps_plugin_icon_for_search_glyph(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    output = tmp_path / "out.html"
+
+    render_from_config(make_empty_config(), str(output))
+
+    glass_icon = output.read_text().split('<div id="GlassIcon">', 1)[1].split("</div>", 1)[0]
+    assert "<svg" in glass_icon
+    assert "<img" not in glass_icon
+
+
+def test_render_with_query_has_no_placeholder(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    output = tmp_path / "out.html"
+
+    render_from_config(make_config(1, max_results=3), str(output))
+
+    html = output.read_text()
+    assert "Type here to search" not in html
+    assert 'class="empty"' not in html

@@ -183,6 +183,10 @@ body {
 #GlassIcon {
     color: #6f737a;
 }
+#ClockBox {
+    color: #6f737a;
+    font-size: 20px;
+}
 .item {
     border-radius: 8px;
     margin: 0 10px 0 10px;

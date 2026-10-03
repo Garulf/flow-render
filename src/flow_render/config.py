@@ -1,10 +1,13 @@
 from dataclasses import dataclass, field, asdict
 from typing import List, Optional, Union
 import json
+from datetime import datetime
 from pathlib import Path
 
 from .result_config import resolve_icon
 from .plugin import Plugin, PluginResult
+
+CLOCK_FORMAT = "%I:%M %p"
 
 PLUGIN_MANAGER_ICON = (
     "https://github.com/Flow-Launcher/Flow.Launcher/blob/dev/Plugins/"
@@ -24,6 +27,7 @@ class Config:
     query_suggestion: Optional[str] = None
     plugin: Optional[dict] = None
     show_caret: bool = True
+    clock: Optional[str] = None
 
     def __post_init__(self):
         if not self.query_suggestion:
@@ -66,6 +70,14 @@ class Config:
         return completion
 
     @property
+    def is_empty(self) -> bool:
+        return not self.full_query and not self.results
+
+    @property
+    def clock_text(self) -> str:
+        return self.clock or datetime.now().strftime(CLOCK_FORMAT)
+
+    @property
     def full_query(self) -> str:
         if self.keyword:
             return f"{self.keyword} {self.query}"
@@ -98,6 +110,10 @@ class Config:
 
 
 MAX_STORED_RESULTS = 20
+
+
+def empty_config() -> Config:
+    return Config(keyword="", query="", icon="")
 
 
 def plugin_to_config(plugin: Plugin, query: str, max_results: int = 3) -> Config:

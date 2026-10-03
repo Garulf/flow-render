@@ -118,3 +118,14 @@ def test_output_is_self_contained_and_carries_warnings():
     assert ".item-text-container" in css
     assert css.index(".item-text-container") < css.index("#WindowBorder {\n    background-color")
     assert "unresolved" in css[:400]
+
+
+def test_emits_clock_rules():
+    theme = make_resolved_theme()
+    theme.styles["ClockBox"] = {"Foreground": "#8f8f8f", "FontSize": "20"}
+
+    css = theme_to_css(theme, "dark")
+
+    clock_block = css.split("#ClockBox {", 1)[1].split("}", 1)[0]
+    assert "color: #8f8f8f;" in clock_block
+    assert "font-size: 20px;" in clock_block

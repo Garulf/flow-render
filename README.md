@@ -81,7 +81,9 @@ flow-render -c ./example/config.json
 | `-u`, `--plugin-url` | URL or local path to a plugin `.zip`; extracted to a temp dir and used like `-p` |
 | `-q`, `--query` | Query to run against the plugin |
 | `-i` | Render the plugin-manager "pm install" view for the given plugin (works with `-p` or `-u`) instead of running a query |
-| `-s`, `--css` | Stylesheet(s) to render with, e.g. `win11-dark.css` or `win11-dark.css ad-neon.css` (only applies with `-p`/`-u`; a config file's own `css` field takes precedence with `-c`) |
+| `--empty` | Render the idle search window (placeholder text and clock, no results) without a plugin |
+| `--clock` | Time shown by `--empty`, e.g. `"02:42 PM"` (defaults to the current time) |
+| `-s`, `--css` | Stylesheet(s) to render with, e.g. `win11-dark.css` or `win11-dark.css ad-neon.css` (only applies with `-p`/`-u`/`--empty`; a config file's own `css` field takes precedence with `-c`) |
 | `-o`, `--output` | Directory to save the rendered PNG in (defaults to a per-user data directory, see above) |
 | `-m`, `--max-results` | Maximum number of results to render (only applies with `-p`/`-u`; default: 3) |
 | `-W`, `--width` | Screenshot width in px (overrides any canvas size baked into the selected theme; defaults to 1280) |
@@ -111,6 +113,14 @@ With `-i`, no query is run — instead it renders the plugin-manager mockup you'
 after typing `pm install <name>`: query box shows `pm install {Name}`, and the single
 result is `{Name} by {Author}` / `{Description}`, all read straight from the plugin's
 `plugin.json`.
+
+With `--empty`, no plugin is needed. It renders what Flow Launcher shows before
+anything is typed: a "Type here to search" placeholder in the theme's suggestion
+color, a clock, and the search glyph, with the results list collapsed:
+
+```bash
+flow-render --empty -s win11-dark --clock "02:42 PM"
+```
 
 ## Edit mode
 
@@ -239,6 +249,9 @@ See `example/config.json`:
 - `icon` accepts a data URI or a path relative to the config file — relative paths are
   resolved and inlined automatically.
 - `selection` is the index of the highlighted row.
+- A config with empty `keyword`, `query` and `results` renders the idle search window
+  (see `--empty`). Its optional `clock` field sets the time shown; leave it out to use
+  the current time.
 - `query_suggestion` is auto-filled, when left empty, with the selected result's title —
   but only if the typed `query` is a case-insensitive prefix of it. The untyped remainder
   renders as grayed-out ghost text after the cursor (the usual autocomplete look); no

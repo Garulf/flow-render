@@ -30,12 +30,18 @@
 <body>
     <div>
         <div id="Preview">
-            <div id="WindowBorder">
+            <div id="WindowBorder"{{ ' class="empty"' if render_data.is_empty else '' }}>
                 <div id="QueryBoxArea">
                     <div>
-                      <div id="QueryBoxText" class="{{ '' if render_data.show_caret else 'no-caret' }}">{{ render_data.keyword }} {{ query }}</div>
+                      <div id="QueryBoxText" class="{{ '' if render_data.show_caret else 'no-caret' }}">{% if not render_data.is_empty %}{{ render_data.keyword }} {{ query }}{% endif %}</div>
+                    {% if render_data.is_empty %}
+                        <div id="QueryBoxSuggestion">Type here to search</div>
+                        <div id="GlassIcon">{% include 'search-icon.svg' %}</div>
+                    {% else %}
                         <div id="QueryBoxSuggestion">{{ query_suggestion }}</div>
                         <div id="GlassIcon"><img src="{{ icon }}" width="32" height="32"></div>
+                    {% endif %}
+                        <div id="ClockBox">{{ render_data.clock_text }}</div>
                     </div>
                 </div>
                 <div id="Separator"></div>
