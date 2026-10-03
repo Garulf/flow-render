@@ -183,6 +183,10 @@ body {
 #GlassIcon {
     color: #000000;
 }
+#ClockBox {
+    color: #000000;
+    font-size: 20px;
+}
 #ResultsScrollbar .thumb {
     background-color: #C0C0C0;
 }

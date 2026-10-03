@@ -6,14 +6,14 @@ from pathlib import Path
 from typing import Optional, Sequence
 
 from . import edit_server
-from .config import Config, plugin_manager_config, plugin_to_config
+from .config import Config, empty_config, plugin_manager_config, plugin_to_config
 from .plugin import Plugin
 from .plugin_source import resolve_plugin_source, resolve_plugin_path
 from .renderer import detect_canvas_size
 from .main import main
 
 
-def add_common_arguments(parser: ArgumentParser) -> None:
+def add_common_arguments(parser: ArgumentParser):
     plugin_group = parser.add_mutually_exclusive_group()
     plugin_group.add_argument('-p', '--plugin', help="Path to the plugin, or just its name to look for a matching folder in the current directory or Flow Launcher's Plugins directory")
     plugin_group.add_argument('-u', '--plugin-url', help="URL or local path to a plugin .zip to download/extract and use")
@@ -21,11 +21,14 @@ def add_common_arguments(parser: ArgumentParser) -> None:
     parser.add_argument('-s', '--css', nargs='+', help="Stylesheet(s) to render with (e.g. win11-dark.css ad-neon.css); the .css extension is optional")
     parser.add_argument('-m', '--max-results', type=int, default=3, help="Maximum number of results to render (only applies with -p/-u; default: 3)")
     parser.add_argument('--hide-caret', action='store_true', help="Hide the blinking text caret in the query box")
+    return plugin_group
 
 
 def get_args(seq: Sequence[str]) -> Namespace:
     parser = ArgumentParser(description="Render a plugin's output")
-    add_common_arguments(parser)
+    plugin_group = add_common_arguments(parser)
+    plugin_group.add_argument('--empty', action='store_true', help="Render the empty search window (placeholder text and clock) instead of a plugin")
+    parser.add_argument('--clock', help="Time shown in the empty search window, e.g. \"02:42 PM\" (defaults to the current time)")
     parser.add_argument('-c', '--config', help="Path to the config file")
     parser.add_argument('-i', action='store_true', help="Use plugin manager")
     parser.add_argument('-o', '--output', help="Directory to save the rendered PNG in (defaults to a per-user data directory)")
@@ -50,11 +53,7 @@ def normalize_css_names(css_names):
     return [name if name.endswith('.css') else f'{name}.css' for name in css_names]
 
 
-def config_from_plugin(plugin: Plugin, args: Namespace) -> Config:
-    config = (
-        plugin_manager_config(plugin, max_results=args.max_results) if args.i
-        else plugin_to_config(plugin, args.query or "", max_results=args.max_results)
-    )
+def apply_display_options(config: Config, args: Namespace) -> Config:
     config.show_caret = not args.hide_caret
     css = normalize_css_names(args.css)
     if css:
@@ -64,9 +63,25 @@ def config_from_plugin(plugin: Plugin, args: Namespace) -> Config:
     return config
 
 
+def config_from_plugin(plugin: Plugin, args: Namespace) -> Config:
+    config = (
+        plugin_manager_config(plugin, max_results=args.max_results) if args.i
+        else plugin_to_config(plugin, args.query or "", max_results=args.max_results)
+    )
+    return apply_display_options(config, args)
+
+
+def build_empty_config(args: Namespace) -> Config:
+    config = apply_display_options(empty_config(), args)
+    config.clock = args.clock
+    return config
+
+
 def build_config(args: Namespace) -> Config:
     if args.config:
         return Config.from_file(args.config)
+    if getattr(args, 'empty', False):
+        return build_empty_config(args)
     if args.plugin_url:
         with tempfile.TemporaryDirectory() as tmp_dir:
             plugin_path = resolve_plugin_source(args.plugin_url, Path(tmp_dir))
@@ -111,8 +126,8 @@ def setup(args: Namespace):
     if args.command == 'edit':
         run_edit(args)
         return
-    if not args.config and not args.plugin and not args.plugin_url:
-        sys.exit("Provide a config file (-c), a plugin path (-p), or a plugin zip (-u). See --help.")
+    if not args.config and not args.plugin and not args.plugin_url and not getattr(args, 'empty', False):
+        sys.exit("Provide a config file (-c), a plugin path (-p), a plugin zip (-u), or --empty. See --help.")
     config = build_config(args)
     if args.print_json:
         print(json.dumps(config.as_dict(), indent=4))

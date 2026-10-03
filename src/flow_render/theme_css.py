@@ -87,6 +87,8 @@ PROPERTY_MAP = [
     ('ItemHotkeyBGStyle', 'Background', '.Hotkey', 'background-color', 'color'),
     ('ItemHotkeyBGSelectedStyle', 'Background', '.selecteditem .Hotkey', 'background-color', 'color'),
     ('SearchIconStyle', 'Fill', '#GlassIcon', 'color', 'color'),
+    ('ClockBox', 'Foreground', '#ClockBox', 'color', 'color'),
+    ('ClockBox', 'FontSize', '#ClockBox', 'font-size', 'px'),
 ]
 
 RESOURCE_MAP = [
